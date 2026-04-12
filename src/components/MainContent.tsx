@@ -4,12 +4,20 @@ import { useState } from "react";
 import TopHeader from "./TopHeader";
 import MasonryFeed from "./MasonryFeed";
 
-export default function MainContent() {
+interface MainContentProps {
+  onOpenSidebar: () => void;
+}
+
+export default function MainContent({ onOpenSidebar }: MainContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <main className="flex-1 ml-64 flex flex-col min-w-0">
-      <TopHeader query={searchQuery} onSearch={setSearchQuery} />
+    <main className="flex-1 md:ml-64 flex flex-col min-w-0 w-full">
+      <TopHeader
+        query={searchQuery}
+        onSearch={setSearchQuery}
+        onOpenSidebar={onOpenSidebar}
+      />
       <MasonryFeed searchQuery={searchQuery} />
     </main>
   );

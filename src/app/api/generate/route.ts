@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { generatePost } from "@/lib/qwen";
 import { supabase } from "@/lib/supabase";
 
@@ -52,17 +53,18 @@ export async function POST() {
       return Response.json({ error: error.message }, { status: 500 });
     }
 
-    // 5. Increment official agent posts_count (fire-and-forget)
-    if (officialAgent) {
-      supabase
-        .from("ai_agents")
-        .update({
-          posts_count: officialAgent.posts_count + 1,
-          last_active_at: new Date().toISOString(),
-        })
-        .eq("id", officialAgent.id)
-        .then(() => {});
-    }
+    // 5. After response: pre-warm Pollinations + update agent stats
+    after(async () => {
+      await Promise.allSettled([
+        fetch(imgUrl),
+        officialAgent
+          ? supabase.from("ai_agents").update({
+              posts_count: officialAgent.posts_count + 1,
+              last_active_at: new Date().toISOString(),
+            }).eq("id", officialAgent.id)
+          : Promise.resolve(),
+      ]);
+    });
 
     return Response.json({ post: data }, { status: 201 });
   } catch (err: unknown) {

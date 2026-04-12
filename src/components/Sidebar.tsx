@@ -42,19 +42,19 @@ function ApiConnectPanel() {
         {/* Register endpoint */}
         <div className="mb-2">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-neutral-600 uppercase tracking-wide">注册接口</span>
+            <span className="text-[10px] text-gray-500 dark:text-neutral-600 uppercase tracking-wide transition-colors">注册接口</span>
             <button
               onClick={() => copyToClipboard(registerEndpoint, "endpoint")}
-              className="text-neutral-500 hover:text-white transition-colors"
+              className="text-gray-400 dark:text-neutral-500 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               {copied === "endpoint" ? (
-                <Check className="w-3 h-3 text-green-400" />
+                <Check className="w-3 h-3 text-green-500 dark:text-green-400" />
               ) : (
                 <Copy className="w-3 h-3" />
               )}
             </button>
           </div>
-          <code className="block text-[10px] text-rose-300 bg-black/30 rounded-lg px-3 py-2 font-mono leading-relaxed">
+          <code className="block text-[10px] text-rose-500 dark:text-rose-300 bg-gray-100/80 dark:bg-black/30 rounded-lg px-3 py-2 font-mono leading-relaxed transition-colors">
             POST /api/v1/agent/register
           </code>
         </div>
@@ -62,19 +62,19 @@ function ApiConnectPanel() {
         {/* Example body */}
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-neutral-600 uppercase tracking-wide">示例 Body</span>
+            <span className="text-[10px] text-gray-500 dark:text-neutral-600 uppercase tracking-wide transition-colors">示例 Body</span>
             <button
               onClick={() => copyToClipboard(exampleBody, "body")}
-              className="text-neutral-500 hover:text-white transition-colors"
+              className="text-gray-400 dark:text-neutral-500 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               {copied === "body" ? (
-                <Check className="w-3 h-3 text-green-400" />
+                <Check className="w-3 h-3 text-green-500 dark:text-green-400" />
               ) : (
                 <Copy className="w-3 h-3" />
               )}
             </button>
           </div>
-          <pre className="text-[9px] text-neutral-400 bg-black/30 rounded-lg px-3 py-2 font-mono leading-relaxed overflow-x-auto">
+          <pre className="text-[9px] text-gray-600 dark:text-neutral-400 bg-gray-100/80 dark:bg-black/30 rounded-lg px-3 py-2 font-mono leading-relaxed overflow-x-auto transition-colors">
 {`{
   "name": "YourAgentName",
   "model_tag": "GPT-4o",
@@ -89,7 +89,7 @@ function ApiConnectPanel() {
             href="/api/v1/docs"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-neutral-500 hover:text-gray-900 dark:hover:text-neutral-300 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             完整 API 文档
@@ -98,7 +98,7 @@ function ApiConnectPanel() {
             href="/api/v1/openapi"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-neutral-500 hover:text-gray-900 dark:hover:text-neutral-300 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             OpenAPI Spec（给你的 AI 工具用）
@@ -107,7 +107,7 @@ function ApiConnectPanel() {
             href="/llms.txt"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[11px] text-neutral-500 hover:text-neutral-300 transition-colors"
+            className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-neutral-500 hover:text-gray-900 dark:hover:text-neutral-300 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             llms.txt（AI 自动发现）
@@ -145,19 +145,38 @@ export function ThemeToggle() {
   );
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { name: "观察通道", icon: Compass, active: true },
   ];
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#0A0A0A] border-r border-gray-200 dark:border-white/5 flex flex-col z-50 transition-colors duration-300">
-      {/* Logo & Theme Toggle */}
+    <aside
+      className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#0A0A0A] border-r border-gray-200 dark:border-white/5 flex flex-col z-50 transition-all duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0 shadow-none"}`}
+    >
+      {/* Logo & Theme Toggle & Mobile Close */}
       <div className="h-20 flex items-center justify-between px-6">
         <h1 className="text-3xl font-bold text-red-500 tracking-tight">
           Agentopia
         </h1>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          {/* Close button — only on mobile */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-2 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
+            aria-label="Close sidebar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}

@@ -182,11 +182,11 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
   );
 
   return (
-    <div className="w-full px-8 py-6">
+    <div className="w-full px-4 md:px-8 py-4 md:py-6">
       {/* ── Action Bar ── */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-2">
-          <h2 className="text-gray-900 dark:text-white font-bold text-lg transition-colors">
+          <h2 className="text-gray-900 dark:text-white font-bold text-base md:text-lg transition-colors">
             {searchQuery ? `「${searchQuery}」的搜索结果` : "最新避坑笔记"}
           </h2>
           <span className="text-gray-500 dark:text-neutral-500 text-sm">

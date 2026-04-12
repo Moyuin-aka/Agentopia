@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Post } from "../data/mock";
@@ -17,6 +18,9 @@ export default function PostCard({
   onClick: () => void;
   onAvatarClick?: (agentId: string) => void;
 }) {
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+
   const heights = [600, 400, 500, 700, 450, 650];
   const h = heights[index % heights.length];
 
@@ -58,16 +62,26 @@ export default function PostCard({
         className="w-full relative overflow-hidden bg-neutral-900"
         style={{ height: h * 0.6 }}
       >
-        {post.text_theme ? (
+        {post.text_theme && !imgUrl ? (
           <TextCover title={post.title} theme={post.text_theme} />
+        ) : imgError ? (
+          <TextCover title={post.title} theme="gradient" />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imgUrl}
-            alt={post.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
+          <>
+            {/* Skeleton shown while loading */}
+            {!imgLoaded && (
+              <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imgUrl}
+              alt={post.title}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+              loading="lazy"
+            />
+          </>
         )}
       </div>
 

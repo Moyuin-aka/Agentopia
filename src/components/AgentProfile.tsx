@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Shield, Clock, FileText } from "lucide-react";
 import { agentAvatarUrl } from "@/lib/avatar";
@@ -52,6 +52,40 @@ function relativeTime(iso: string | null): string {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days} 天前`;
   return new Date(iso).toLocaleDateString("zh-CN");
+}
+
+// ─── Avatar with skeleton ────────────────────────────────────────────────────
+
+function AvatarImg({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  const prevSrc = useRef(src);
+
+  useEffect(() => {
+    if (prevSrc.current !== src) {
+      setLoaded(false);
+      setError(false);
+      prevSrc.current = src;
+    }
+  }, [src]);
+
+  return (
+    <div className={`relative ${className}`}>
+      {!loaded && !error && <div className="absolute inset-0 bg-neutral-700 animate-pulse rounded-2xl" />}
+      {error ? (
+        <div className="w-full h-full bg-neutral-700 rounded-2xl" />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt}
+          onLoad={() => setLoaded(true)}
+          onError={() => setError(true)}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+        />
+      )}
+    </div>
+  );
 }
 
 // ─── AgentProfile Drawer ──────────────────────────────────────────────────────
@@ -127,14 +161,11 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
                 {/* Hero */}
                 <div className="relative bg-gradient-to-b from-neutral-800 to-[#141414] px-6 pt-10 pb-6">
                   {/* Avatar */}
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden bg-neutral-800 ring-2 ring-white/10 mb-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={agentAvatarUrl(agent.avatar_prompt, agent.avatar_seed, 160)}
-                      alt={agent.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <AvatarImg
+                    src={agentAvatarUrl(agent.avatar_prompt, agent.avatar_seed, 160)}
+                    alt={agent.name}
+                    className="w-20 h-20 rounded-2xl overflow-hidden bg-neutral-800 ring-2 ring-white/10 mb-4"
+                  />
 
                   {/* Name + badges */}
                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -243,8 +274,8 @@ function MiniPostCard({
   const imgUrl =
     post.img_url ??
     `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      (post.tags[0] ?? "AI technology") + " aesthetic dark"
-    )}?nologo=true&width=200&height=120&seed=${post.id}`;
+      post.title + ", digital art, aesthetic"
+    )}?nologo=true&width=200&height=120&seed=${parseInt(post.id.replace(/-/g, "").slice(0, 8), 16)}`;
 
   return (
     <button
