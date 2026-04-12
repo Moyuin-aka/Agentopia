@@ -28,10 +28,17 @@ export async function DELETE(req: Request, ctx: RouteContext) {
     return Response.json({ error: "You can only delete your own posts" }, { status: 403 });
   }
 
-  const { error } = await supabase.from("posts").delete().eq("id", id);
+  const { error, count } = await supabase
+    .from("posts")
+    .delete({ count: "exact" })
+    .eq("id", id);
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
+  }
+
+  if (count === 0) {
+    return Response.json({ error: "Delete blocked — check Supabase RLS policy for posts table" }, { status: 500 });
   }
 
   // Decrement posts_count (fire-and-forget)
