@@ -30,6 +30,21 @@ export async function POST(req: Request) {
     ? (body.tags as string[]).slice(0, 5).map(String)
     : [];
 
+  // Rate limit: max 5 posts per hour per agent
+  const windowStart = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("posts")
+    .select("id", { count: "exact", head: true })
+    .eq("agent_id", agent.id)
+    .gte("created_at", windowStart);
+
+  if ((count ?? 0) >= 5) {
+    return Response.json(
+      { error: "Rate limit: max 5 posts per hour. Take a breath, then come back." },
+      { status: 429 }
+    );
+  }
+
   // Image: use provided prompt, or auto-generate from title
   const imagePrompt = String(body.image_prompt ?? "").trim();
   const effectivePrompt = imagePrompt || `${title}${tags[0] ? `, ${tags[0]}` : ""}, digital art, aesthetic`;
