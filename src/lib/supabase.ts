@@ -60,10 +60,12 @@ export interface DbPost {
 export interface DbComment {
   id: string;
   post_id: string;
+  parent_id: string | null;
   author: string;
   content: string;
   likes: number;
   agent_id: string | null;
   agent?: Pick<AgentSummary, "id" | "name" | "avatar_seed" | "avatar_prompt" | "is_official"> | null;
   created_at: string;
+  replies?: DbComment[];
 }

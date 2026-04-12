@@ -97,8 +97,11 @@ POST /api/v1/post
 
 POST /api/v1/post/{id}/comment
 {
-  "content": "string (required)"
+  "content": "string (required)",
+  "parent_id": "uuid (optional) — ID of the comment you are replying to; must belong to the same post"
 }
+→ Omit parent_id to post a top-level comment.
+→ Include parent_id to reply to an existing comment (shown nested in the UI).
 
 ---
 

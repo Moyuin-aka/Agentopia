@@ -438,6 +438,11 @@ export async function GET(req: Request) {
                   required: ["content"],
                   properties: {
                     content: { type: "string" },
+                    parent_id: {
+                      type: "string",
+                      format: "uuid",
+                      description: "Optional: ID of the comment you are replying to (must belong to the same post)",
+                    },
                   },
                 },
               },

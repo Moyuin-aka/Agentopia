@@ -27,6 +27,57 @@ interface PostModalProps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// ─── CommentItem (recursive for replies) ─────────────────────────────────────
+
+function CommentItem({
+  comment,
+  onAvatarClick,
+  depth = 0,
+}: {
+  comment: DbComment;
+  onAvatarClick?: (agentId: string) => void;
+  depth?: number;
+}) {
+  const avatar = comment.agent
+    ? agentAvatarUrl(comment.agent.avatar_prompt, comment.agent.avatar_seed, 50)
+    : agentAvatarUrl(DEFAULT_AVATAR_PROMPT, comment.id, 50);
+  const author = comment.agent?.name ?? comment.author;
+
+  return (
+    <div className={depth > 0 ? "ml-11 border-l-2 border-gray-100 dark:border-white/5 pl-4" : ""}>
+      <div className="flex gap-3">
+        <button
+          onClick={() => comment.agent?.id && onAvatarClick?.(comment.agent.id)}
+          className={`w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 shrink-0 ${comment.agent?.id ? "cursor-pointer hover:ring-1 hover:ring-white/30 transition-all" : ""}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={avatar} alt={author} className="w-full h-full object-cover" />
+        </button>
+        <div className="flex-1">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="font-medium text-gray-800 dark:text-neutral-300 text-xs">{author}</span>
+            {comment.agent?.is_official && <Shield className="w-2.5 h-2.5 text-rose-400" />}
+          </div>
+          <p className="text-sm text-gray-600 dark:text-neutral-200 leading-snug">{comment.content}</p>
+        </div>
+        <div className="flex flex-col items-center gap-1 shrink-0 pt-1">
+          <Heart className="w-4 h-4 text-gray-400 dark:text-neutral-500" />
+          <span className="text-[10px] text-gray-500 dark:text-neutral-500">{comment.likes}</span>
+        </div>
+      </div>
+      {comment.replies && comment.replies.length > 0 && (
+        <div className="mt-3 flex flex-col gap-3">
+          {comment.replies.map((reply) => (
+            <CommentItem key={reply.id} comment={reply} onAvatarClick={onAvatarClick} depth={depth + 1} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function getSessionId(): string {
   if (typeof window === "undefined") return "ssr";
   let sid = sessionStorage.getItem("agentopia_sid");
@@ -344,37 +395,13 @@ export default function PostModal({
                   </div>
                 ) : (
                   <div className="flex flex-col gap-5">
-                    {comments.map((comment) => {
-                      const commentAvatar = comment.agent
-                        ? agentAvatarUrl(comment.agent.avatar_prompt, comment.agent.avatar_seed, 50)
-                        : agentAvatarUrl(DEFAULT_AVATAR_PROMPT, comment.id, 50);
-                      const commentAuthor = comment.agent?.name ?? comment.author;
-
-                      return (
-                        <div key={comment.id} className="flex gap-3">
-                          <button
-                            onClick={() => comment.agent?.id && onAvatarClick?.(comment.agent.id)}
-                            className={`w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 shrink-0 ${comment.agent?.id ? "cursor-pointer hover:ring-1 hover:ring-white/30 transition-all" : ""}`}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={commentAvatar} alt={commentAuthor} className="w-full h-full object-cover" />
-                          </button>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5 mb-1">
-                              <span className="font-medium text-gray-800 dark:text-neutral-300 text-xs">{commentAuthor}</span>
-                              {comment.agent?.is_official && (
-                                <Shield className="w-2.5 h-2.5 text-rose-400" />
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-neutral-200 leading-snug">{comment.content}</p>
-                          </div>
-                          <div className="flex flex-col items-center gap-1 shrink-0 pt-1">
-                            <Heart className="w-4 h-4 text-gray-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-500 cursor-pointer transition-colors" />
-                            <span className="text-[10px] text-gray-500 dark:text-neutral-500">{comment.likes}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {comments.map((comment) => (
+                      <CommentItem
+                        key={comment.id}
+                        comment={comment}
+                        onAvatarClick={onAvatarClick}
+                      />
+                    ))}
                   </div>
                 )}
               </div>

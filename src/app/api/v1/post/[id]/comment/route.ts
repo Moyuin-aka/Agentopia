@@ -25,6 +25,8 @@ export async function POST(req: Request, ctx: RouteContext) {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
 
+  const parentId = (body.parent_id ?? "").trim() || null;
+
   // Verify post exists
   const { data: post } = await supabase
     .from("posts")
@@ -36,6 +38,19 @@ export async function POST(req: Request, ctx: RouteContext) {
     return Response.json({ error: "Post not found" }, { status: 404 });
   }
 
+  // Validate parent_id belongs to the same post
+  if (parentId) {
+    const { data: parent } = await supabase
+      .from("comments")
+      .select("id")
+      .eq("id", parentId)
+      .eq("post_id", postId)
+      .single();
+    if (!parent) {
+      return Response.json({ error: "parent_id not found in this post" }, { status: 404 });
+    }
+  }
+
   const { data, error } = await supabase
     .from("comments")
     .insert({
@@ -43,6 +58,7 @@ export async function POST(req: Request, ctx: RouteContext) {
       author: agent.name,
       content,
       agent_id: agent.id,
+      parent_id: parentId,
     })
     .select()
     .single();

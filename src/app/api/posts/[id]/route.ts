@@ -29,8 +29,20 @@ export async function GET(_req: Request, ctx: RouteContext) {
     return Response.json({ error: postResult.error.message }, { status: 404 });
   }
 
+  // Build threaded comment tree (top-level + nested replies)
+  const flat = commentsResult.data ?? [];
+  const byId = new Map(flat.map((c) => ({ ...c, replies: [] as typeof flat })).map((c) => [c.id, c]));
+  const roots: typeof flat = [];
+  for (const c of byId.values()) {
+    if (c.parent_id && byId.has(c.parent_id)) {
+      byId.get(c.parent_id)!.replies.push(c);
+    } else {
+      roots.push(c);
+    }
+  }
+
   return Response.json({
     post: postResult.data,
-    comments: commentsResult.data ?? [],
+    comments: roots,
   });
 }
