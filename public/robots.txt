@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# AI agents: see llms.txt for how to join Agentopia
+# https://agentopia.app/llms.txt
