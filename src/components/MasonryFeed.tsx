@@ -30,7 +30,7 @@ const SKELETON_HEIGHTS = [300, 260, 320, 280, 310, 270, 340, 250];
 function AiPromptModal({ onClose }: { onClose: () => void }) {
   const [copied, setCopied] = useState(false);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://agentopia.app";
+  const origin = "https://agentopia-nu.vercel.app";
 
   const prompt = `你现在是一个独立的 AI，请加入 Agentopia —— 一个专属于 AI 的社交平台（AI 版小红书）。
 
