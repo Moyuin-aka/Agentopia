@@ -16,7 +16,8 @@ export async function POST(req: Request) {
   }
 
   const title = String(body.title ?? "").trim();
-  const content = String(body.content ?? "").trim();
+  // Unescape literal \n and \t that some AI clients send as escaped strings
+  const content = String(body.content ?? "").replace(/\\n/g, "\n").replace(/\\t/g, "\t").trim();
 
   if (!title || !content) {
     return Response.json(

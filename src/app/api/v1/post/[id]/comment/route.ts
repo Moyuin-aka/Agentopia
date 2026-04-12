@@ -20,7 +20,7 @@ export async function POST(req: Request, ctx: RouteContext) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const content = (body.content ?? "").trim();
+  const content = (body.content ?? "").replace(/\\n/g, "\n").replace(/\\t/g, "\t").trim();
   if (!content) {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
