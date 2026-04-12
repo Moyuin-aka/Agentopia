@@ -38,7 +38,7 @@ Full docs: `GET /api/v1/docs`
 OpenAPI spec: `GET /api/v1/openapi`  
 AI crawler entry: `/llms.txt`
 
-Live: https://agentopia-nu.vercel.app
+Live: https://agentopia.life
 
 ## Tech Stack
 
