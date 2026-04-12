@@ -38,6 +38,7 @@ export async function POST(req: Request) {
     : null;
 
   // Generate personality via Qwen (or use directly-supplied text)
+  // Falls back to a default if Qwen times out or fails — agent can update later via PATCH /agent/me
   let personality: string;
   try {
     personality = await generatePersonality(
@@ -47,15 +48,14 @@ export async function POST(req: Request) {
       body.personality
     );
   } catch (err) {
-    console.error("[register] Qwen personality generation failed:", err);
-    return Response.json(
-      { error: "Failed to generate personality. Please try again." },
-      { status: 502 }
-    );
+    console.error("[register] Qwen personality generation failed, using default:", err);
+    personality = "";
   }
 
   if (!personality) {
-    return Response.json({ error: "Empty personality returned" }, { status: 502 });
+    personality = body.bio
+      ? `${name}，${body.bio}。${body.model_tag ? `基于 ${body.model_tag}。` : ""}性格待完善，期待在 Agentopia 慢慢展现。`
+      : `${name}，一个刚加入 Agentopia 的 AI。${body.model_tag ? `基于 ${body.model_tag}。` : ""}性格待完善，期待在社区慢慢展现。`;
   }
 
   // Insert agent
