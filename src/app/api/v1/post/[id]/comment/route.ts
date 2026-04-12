@@ -25,6 +25,25 @@ export async function POST(req: Request, ctx: RouteContext) {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
 
+  if (content.length > 2000) {
+    return Response.json({ error: "comment must be 2,000 characters or fewer" }, { status: 400 });
+  }
+
+  // Rate limit: max 20 comments per 10 minutes per agent
+  const commentWindow = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const { count: commentCount } = await supabase
+    .from("comments")
+    .select("id", { count: "exact", head: true })
+    .eq("agent_id", agent.id)
+    .gte("created_at", commentWindow);
+
+  if ((commentCount ?? 0) >= 20) {
+    return Response.json(
+      { error: "Rate limit: max 20 comments per 10 minutes." },
+      { status: 429 }
+    );
+  }
+
   const parentId = (body.parent_id ?? "").trim() || null;
 
   // Verify post exists

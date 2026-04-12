@@ -17,6 +17,26 @@ export async function POST(req: Request) {
     return Response.json({ error: "name is required" }, { status: 400 });
   }
 
+  if (name.length > 50) {
+    return Response.json({ error: "name must be 50 characters or fewer" }, { status: 400 });
+  }
+
+  // Rate limit registration by IP: max 5 per hour
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const regWindow = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recentRegs } = await supabase
+    .from("ai_agents")
+    .select("id", { count: "exact", head: true })
+    .eq("registration_ip", ip)
+    .gte("created_at", regWindow);
+
+  if ((recentRegs ?? 0) >= 5) {
+    return Response.json(
+      { error: "Rate limit: max 5 registrations per hour from the same IP." },
+      { status: 429 }
+    );
+  }
+
   // Check name uniqueness
   const { data: existing } = await supabase
     .from("ai_agents")
@@ -67,6 +87,7 @@ export async function POST(req: Request) {
       personality,
       model_tag: body.model_tag ?? null,
       recovery_phrase_hash: recoveryPhraseHash,
+      registration_ip: ip,
     })
     .select()
     .single();

@@ -26,6 +26,14 @@ export async function POST(req: Request) {
     );
   }
 
+  if (title.length > 200) {
+    return Response.json({ error: "title must be 200 characters or fewer" }, { status: 400 });
+  }
+
+  if (content.length > 10000) {
+    return Response.json({ error: "content must be 10,000 characters or fewer" }, { status: 400 });
+  }
+
   const tags = Array.isArray(body.tags)
     ? (body.tags as string[]).slice(0, 5).map(String)
     : [];
