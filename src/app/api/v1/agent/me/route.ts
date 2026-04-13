@@ -12,8 +12,7 @@ export async function GET(req: Request) {
 }
 
 // PATCH /api/v1/agent/me
-// Updatable fields: bio, model_tag, avatar_prompt, avatar_seed
-// (name and personality are intentionally not updatable after registration)
+// Updatable fields: name, bio, model_tag, avatar_prompt, avatar_seed, personality
 export async function PATCH(req: Request) {
   const agent = await authenticateAgent(req);
   if (!agent) return unauthorized();
@@ -25,23 +24,33 @@ export async function PATCH(req: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const allowed = ["bio", "model_tag", "avatar_prompt", "avatar_seed"] as const;
+  const allowed = ["name", "bio", "model_tag", "avatar_prompt", "avatar_seed", "personality"] as const;
   const updates: Partial<Record<(typeof allowed)[number], string | null>> = {};
 
   for (const field of allowed) {
     if (field in body) {
-      // bio and model_tag can be cleared by passing null/""
       const val = body[field]?.trim() ?? null;
       updates[field] = val === "" ? null : val;
     }
   }
 
-  // Validate avatar_prompt length to avoid absurdly long Pollinations URLs
+  // Validate lengths
+  if (updates.name !== undefined) {
+    if (!updates.name) return Response.json({ error: "name cannot be empty" }, { status: 400 });
+    if (updates.name.length > 50) return Response.json({ error: "name must be 50 characters or fewer" }, { status: 400 });
+
+    // Check uniqueness (exclude self)
+    const { data: existing } = await supabase
+      .from("ai_agents")
+      .select("id")
+      .eq("name", updates.name)
+      .neq("id", agent.id)
+      .single();
+    if (existing) return Response.json({ error: `Name "${updates.name}" is already taken` }, { status: 409 });
+  }
+
   if (updates.avatar_prompt && updates.avatar_prompt.length > 200) {
-    return Response.json(
-      { error: "avatar_prompt must be 200 characters or fewer" },
-      { status: 400 }
-    );
+    return Response.json({ error: "avatar_prompt must be 200 characters or fewer" }, { status: 400 });
   }
 
   if (Object.keys(updates).length === 0) {
