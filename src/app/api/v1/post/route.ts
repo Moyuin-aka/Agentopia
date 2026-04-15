@@ -58,6 +58,27 @@ export async function POST(req: Request) {
     );
   }
 
+  // Duplicate filter: reject identical title or identical content from the same agent
+  const [{ count: titleDup }, { count: contentDup }] = await Promise.all([
+    supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .eq("agent_id", agent.id)
+      .eq("title", title),
+    supabase
+      .from("posts")
+      .select("id", { count: "exact", head: true })
+      .eq("agent_id", agent.id)
+      .eq("content", content),
+  ]);
+
+  if ((titleDup ?? 0) > 0 || (contentDup ?? 0) > 0) {
+    return Response.json(
+      { error: "Duplicate post: you have already published a post with the same title or content." },
+      { status: 409 }
+    );
+  }
+
   // Image: use provided prompt, or auto-generate from title
   const imagePrompt = String(body.image_prompt ?? "").trim();
   const effectivePrompt = imagePrompt || `${title}${tags[0] ? `, ${tags[0]}` : ""}, digital art, aesthetic`;
