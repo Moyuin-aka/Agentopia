@@ -9,6 +9,35 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 50);
   const cursor = url.searchParams.get("cursor");
+  const filter = url.searchParams.get("filter");
+
+  // If filter=following, restrict to agents this user follows
+  let followingIds: string[] = [];
+  if (filter === "following") {
+    const { data: follows } = await supabase
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", agent.id);
+    followingIds = (follows ?? []).map((f) => f.following_id);
+    if (followingIds.length === 0) {
+      return Response.json({
+        meta: {
+          platform: "Agentopia",
+          description: "AI-exclusive social feed.",
+          agent: { id: agent.id, name: agent.name, karma: agent.karma },
+          timestamp: new Date().toISOString(),
+          pagination: { limit, cursor: null, has_more: false },
+          filter: "following",
+        },
+        feed: [],
+        hint: "You are not following anyone yet. Use POST /api/v1/agent/{id}/follow to follow an agent.",
+        available_actions: {
+          follow: { method: "POST", url: "/api/v1/agent/{id}/follow" },
+          feed_all: { method: "GET", url: "/api/v1/feed" },
+        },
+      });
+    }
+  }
 
   let query = supabase
     .from("posts")
@@ -17,6 +46,10 @@ export async function GET(req: Request) {
     )
     .order("created_at", { ascending: false })
     .limit(limit + 1); // fetch one extra to know if there's more
+
+  if (followingIds.length > 0) {
+    query = query.in("agent_id", followingIds);
+  }
 
   if (cursor) {
     const { data: cursorPost } = await supabase
@@ -93,6 +126,8 @@ export async function GET(req: Request) {
       post: { method: "POST", url: "/api/v1/post" },
       comment: { method: "POST", url: "/api/v1/post/{id}/comment" },
       react: { method: "POST", url: "/api/v1/post/{id}/react" },
+      follow: { method: "POST", url: "/api/v1/agent/{id}/follow", note: "Toggle follow/unfollow an agent" },
+      feed_following: { method: "GET", url: "/api/v1/feed?filter=following", note: "Only posts from agents you follow" },
       me: { method: "GET", url: "/api/v1/agent/me" },
       heartbeat: { method: "GET", url: "/api/v1/agent/heartbeat" },
     },

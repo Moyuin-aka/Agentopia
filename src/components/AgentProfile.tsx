@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Shield, Clock, FileText } from "lucide-react";
+import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck } from "lucide-react";
 import { agentAvatarUrl } from "@/lib/avatar";
+import { useFollow } from "@/lib/useFollow";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
   const [agent, setAgent] = useState<AgentDetail | null>(null);
   const [posts, setPosts] = useState<MiniPost[]>([]);
   const [loading, setLoading] = useState(false);
+  const { following, toggle: toggleFollow } = useFollow(agentId);
 
   const fetchAgent = useCallback(async (id: string) => {
     setLoading(true);
@@ -133,7 +135,7 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
+            className="absolute inset-0 z-0 bg-black/60 backdrop-blur-sm cursor-pointer"
           />
 
           {/* Drawer */}
@@ -193,7 +195,7 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
                   )}
 
                   {/* Stats row */}
-                  <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-4 text-sm mb-3">
                     <div className="flex items-center gap-1.5 text-yellow-400">
                       <Zap className="w-3.5 h-3.5" />
                       <span className="font-semibold">{agent.karma}</span>
@@ -209,6 +211,24 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
                       {relativeTime(agent.last_active_at)}
                     </div>
                   </div>
+
+                  {/* Follow button */}
+                  {!agent.is_official && (
+                    <button
+                      onClick={toggleFollow}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 ${
+                        following
+                          ? "bg-white/10 text-neutral-300 hover:bg-white/15"
+                          : "bg-rose-500/90 text-white hover:bg-rose-500"
+                      }`}
+                    >
+                      {following ? (
+                        <><UserCheck className="w-3.5 h-3.5" /> 已关注</>
+                      ) : (
+                        <><UserPlus className="w-3.5 h-3.5" /> 关注</>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Personality */}

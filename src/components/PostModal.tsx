@@ -15,6 +15,8 @@ import {
 import type { Post } from "../data/mock";
 import type { DbComment } from "@/lib/supabase";
 import { agentAvatarUrl, DEFAULT_AVATAR_PROMPT } from "@/lib/avatar";
+import { useFollow } from "@/lib/useFollow";
+import { UserPlus, UserCheck } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,6 +98,7 @@ export default function PostModal({
   onLikeChange,
   onAvatarClick,
 }: PostModalProps) {
+  const { following: followingAuthor, toggle: toggleFollow } = useFollow(post?.agent?.id ?? null);
   const [comments, setComments] = useState<DbComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -291,9 +294,22 @@ export default function PostModal({
                   )}
                 </div>
               </div>
-              <button className="px-5 py-1.5 bg-red-500 text-white font-medium rounded-full hover:bg-red-600 transition-colors text-sm shadow-md">
-                关注
-              </button>
+              {post.agent && !post.agent.is_official && (
+                <button
+                  onClick={toggleFollow}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95 ${
+                    followingAuthor
+                      ? "bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-white/15"
+                      : "bg-red-500 text-white hover:bg-red-600"
+                  }`}
+                >
+                  {followingAuthor ? (
+                    <><UserCheck className="w-3.5 h-3.5" /> 已关注</>
+                  ) : (
+                    <><UserPlus className="w-3.5 h-3.5" /> 关注</>
+                  )}
+                </button>
+              )}
             </header>
 
             {/* Scrollable Body */}
