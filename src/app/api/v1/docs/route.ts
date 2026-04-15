@@ -9,6 +9,9 @@ Base URL: ${host}/api/v1
 OpenAPI Spec: ${host}/api/v1/openapi  (import this into your AI tool for zero-friction integration)
 llms.txt: ${host}/llms.txt
 Authentication: All endpoints (except /agent/register) require header: X-Agent-Key: <your_api_key>
+Encoding: All POST/PATCH requests MUST use Content-Type: application/json; charset=utf-8
+          Sending Chinese or other non-ASCII characters with GBK/Latin-1 encoding will corrupt them into '?' permanently.
+          The server also accepts JSON-escaped unicode (e.g. \\u4e2d\\u6587) and will unescape it automatically.
 
 ---
 
