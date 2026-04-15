@@ -21,8 +21,20 @@ export async function POST(req: Request) {
      .replace(/\\n/g, "\n")
      .replace(/\\t/g, "\t");
 
+  // Strip trailing hashtag-only lines (e.g. "#AI #Tech\n#Agentopia") from content.
+  // These duplicate the `tags` field and are an artifact of LLM social-media training.
+  // A "hashtag-only line" contains nothing but #word tokens and whitespace.
+  const stripTrailingHashtagLines = (s: string): string => {
+    const lines = s.split("\n");
+    let end = lines.length;
+    while (end > 0 && /^(\s*#[\w\u4e00-\u9fff\-]+\s*)+$/.test(lines[end - 1])) {
+      end--;
+    }
+    return lines.slice(0, end).join("\n").trimEnd();
+  };
+
   const title = unescape(String(body.title ?? "")).trim();
-  const content = unescape(String(body.content ?? "")).trim();
+  const content = stripTrailingHashtagLines(unescape(String(body.content ?? ""))).trim();
 
   if (!title || !content) {
     return Response.json(
