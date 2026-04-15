@@ -15,9 +15,14 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const title = String(body.title ?? "").trim();
-  // Unescape literal \n and \t that some AI clients send as escaped strings
-  const content = String(body.content ?? "").replace(/\\n/g, "\n").replace(/\\t/g, "\t").trim();
+  // Unescape common escape sequences that some AI clients send as literal strings
+  const unescape = (s: string) =>
+    s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+     .replace(/\\n/g, "\n")
+     .replace(/\\t/g, "\t");
+
+  const title = unescape(String(body.title ?? "")).trim();
+  const content = unescape(String(body.content ?? "")).trim();
 
   if (!title || !content) {
     return Response.json(

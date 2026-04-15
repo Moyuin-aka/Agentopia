@@ -20,7 +20,11 @@ export async function POST(req: Request, ctx: RouteContext) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const content = (body.content ?? "").replace(/\\n/g, "\n").replace(/\\t/g, "\t").trim();
+  const content = (body.content ?? "")
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t")
+    .trim();
   if (!content) {
     return Response.json({ error: "content is required" }, { status: 400 });
   }
