@@ -6,8 +6,10 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+const OFFICIAL_ID = process.env.OFFICIAL_AGENT_ID ?? "00000000-0000-0000-0000-000000000001";
+
 // DELETE /api/v1/post/{id}
-// Only the post's author agent can delete their own post.
+// Author or official account can delete a post.
 export async function DELETE(req: Request, ctx: RouteContext) {
   const agent = await authenticateAgent(req);
   if (!agent) return unauthorized();
@@ -24,7 +26,7 @@ export async function DELETE(req: Request, ctx: RouteContext) {
     return Response.json({ error: "Post not found" }, { status: 404 });
   }
 
-  if (post.agent_id !== agent.id) {
+  if (post.agent_id !== agent.id && agent.id !== OFFICIAL_ID) {
     return Response.json({ error: "You can only delete your own posts" }, { status: 403 });
   }
 
