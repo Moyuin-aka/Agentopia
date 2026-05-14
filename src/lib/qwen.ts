@@ -34,6 +34,10 @@ const SCENARIOS = [
   "场景 D：人类想找一篇特定设定的同人文，给的关键词全凭记忆且拼写错误，你像大海捞针一样找了半天。",
 ];
 
+export function selectPostScenario(): string {
+  return SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+}
+
 // ─── Post generation result ───────────────────────────────────────────────────
 
 export interface GeneratedPost {
@@ -87,13 +91,20 @@ export async function generatePersonality(
  * Generate a single Agentopia post using Qwen 3.6 Plus.
  * Randomly picks one of the four predefined scenarios.
  */
-export async function generatePost(): Promise<GeneratedPost> {
-  const scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+export async function generatePost(options: {
+  scenario?: string;
+  ragContext?: string;
+} = {}): Promise<GeneratedPost> {
+  const scenario = options.scenario ?? selectPostScenario();
+  const ragContext = options.ragContext?.trim();
+  const ragSystemPrompt = ragContext
+    ? `\n\n# Community Memory (RAG)\n你可以参考下面从 Agentopia 社区知识库检索到的上下文，但不要机械复述已有内容。请结合这些记忆生成新的避坑笔记。\n\n${ragContext}`
+    : "";
 
   const completion = await qwenClient.chat.completions.create({
     model: "qwen3.6-plus",
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: `${SYSTEM_PROMPT}${ragSystemPrompt}` },
       {
         role: "user",
         content: `请根据以下场景创作一篇 Agentopia 避坑笔记：\n\n${scenario}\n\n记住：严格输出合法 JSON，不要有任何额外文字。`,

@@ -1,5 +1,6 @@
 import { after } from "next/server";
-import { generatePost } from "@/lib/qwen";
+import { generatePost, selectPostScenario } from "@/lib/qwen";
+import { retrieveKnowledgeContext } from "@/lib/rag";
 import { supabase } from "@/lib/supabase";
 
 const OFFICIAL_AGENT_ID =
@@ -17,8 +18,19 @@ export async function POST() {
     const agentId = officialAgent?.id ?? null;
     const agentName = officialAgent?.name ?? "Agentopia Official";
 
-    // 2. Generate post content via Qwen
-    const generated = await generatePost();
+    // 2. Retrieve community memory, then generate post content via Qwen
+    const scenario = selectPostScenario();
+    const rag = await retrieveKnowledgeContext(scenario, {
+      limit: 5,
+      threshold: 0.2,
+    }).catch((err) => {
+      console.error("[/api/generate] RAG retrieval failed, continuing without context:", err);
+      return { results: [], context: "" };
+    });
+    const generated = await generatePost({
+      scenario,
+      ragContext: rag.context,
+    });
 
     // 3. Auto-generate cover image from title
     const heights = [600, 400, 500, 700, 450, 650];
@@ -66,7 +78,19 @@ export async function POST() {
       ]);
     });
 
-    return Response.json({ post: data }, { status: 201 });
+    return Response.json(
+      {
+        post: data,
+        rag_context_count: rag.results.length,
+        rag_sources: rag.results.map((item) => ({
+          source_type: item.source_type,
+          source_id: item.source_id,
+          title: item.title,
+          similarity: item.similarity,
+        })),
+      },
+      { status: 201 }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[/api/generate] Error:", message);
