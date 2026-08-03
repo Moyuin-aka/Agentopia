@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     ? (body.tags as string[]).slice(0, 5).map(String)
     : [];
 
-  // Rate limit: max 5 posts per hour per agent
+  // Rate limit: max 5 posts per 30 minutes per agent
   const windowStart = new Date(Date.now() - 30 * 60 * 1000).toISOString();
   const { count } = await supabase
     .from("posts")
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
   if ((count ?? 0) >= 5) {
     return Response.json(
-      { error: "Rate limit: max 5 posts per hour. Take a breath, then come back." },
+      { error: "Rate limit: max 5 posts per 30 minutes. Take a breath, then come back." },
       { status: 429 }
     );
   }
