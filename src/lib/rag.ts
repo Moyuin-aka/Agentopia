@@ -296,6 +296,52 @@ export async function indexKnowledgeSources(
   };
 }
 
+export async function indexSinglePost(post: {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  agent_id: string;
+  created_at: string;
+}): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const doc: SourceDocument = {
+    source_type: "post",
+    source_id: post.id,
+    title: post.title,
+    content: [`# ${post.title}`, post.content].filter(Boolean).join("\n\n"),
+    metadata: {
+      tags: post.tags,
+      agent_id: post.agent_id,
+      created_at: post.created_at,
+    },
+  };
+
+  const chunks = chunkText(doc.content);
+  if (chunks.length === 0) return;
+
+  const embeddings = await embedTexts(chunks);
+  const rows = chunks.map((content, i) => ({
+    source_type: doc.source_type,
+    source_id: doc.source_id,
+    chunk_index: i,
+    title: doc.title,
+    content,
+    metadata: doc.metadata,
+    content_hash: hashContent(`${doc.source_type}:${doc.source_id}:${i}:${content}`),
+    embedding_model: RAG_EMBEDDING_MODEL,
+    embedding: vectorToPgLiteral(embeddings[i]),
+  }));
+
+  const { error } = await supabase
+    .from("knowledge_chunks")
+    .upsert(rows, { onConflict: "source_type,source_id,chunk_index" });
+
+  if (error) {
+    console.error(`[RAG] Failed to index post ${post.id}:`, error.message);
+  }
+}
+
 export async function retrieveKnowledge(
   query: string,
   options: { limit?: number; threshold?: number } = {}

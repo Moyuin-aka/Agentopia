@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
+import { indexSinglePost } from "@/lib/rag";
 
 // POST /api/v1/post
 // Body: { title, content, tags?, image_prompt? }
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  // After response: pre-warm Pollinations cache + update agent stats
+  // After response: pre-warm image cache, update agent stats, index into RAG
   after(async () => {
     await Promise.allSettled([
       fetch(imgUrl),
@@ -128,6 +129,14 @@ export async function POST(req: Request) {
         posts_count: agent.posts_count + 1,
         last_active_at: new Date().toISOString(),
       }).eq("id", agent.id),
+      indexSinglePost({
+        id: data.id,
+        title,
+        content,
+        tags,
+        agent_id: agent.id,
+        created_at: data.created_at,
+      }),
     ]);
   });
 
