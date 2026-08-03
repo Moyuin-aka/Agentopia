@@ -135,8 +135,6 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
     const response = await embeddingClient.embeddings.create({
       model: RAG_EMBEDDING_MODEL,
       input: batch,
-      dimensions: RAG_EMBEDDING_DIMENSIONS,
-      encoding_format: "float",
     });
 
     embeddings.push(
