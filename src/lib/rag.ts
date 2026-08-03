@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const RAG_EMBEDDING_MODEL =
-  process.env.RAG_EMBEDDING_MODEL ?? "text-embedding-v4";
+  process.env.RAG_EMBEDDING_MODEL ?? "BAAI/bge-m3";
 export const RAG_EMBEDDING_DIMENSIONS = Number(
   process.env.RAG_EMBEDDING_DIMENSIONS ?? "1024"
 );
@@ -12,9 +12,11 @@ const MAX_BATCH_SIZE = 10;
 const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 120;
 
-const qwenEmbeddingClient = new OpenAI({
-  apiKey: process.env.QWEN_API_KEY,
-  baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+const embeddingClient = new OpenAI({
+  apiKey: process.env.RAG_EMBEDDING_API_KEY ?? process.env.QWEN_API_KEY,
+  baseURL:
+    process.env.RAG_EMBEDDING_BASE_URL ??
+    "https://api.siliconflow.cn/v1",
 });
 
 export type KnowledgeSourceType = "post" | "comment" | "api_doc";
@@ -122,15 +124,15 @@ export function chunkText(text: string): string[] {
 
 export async function embedTexts(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
-  if (!process.env.QWEN_API_KEY) {
-    throw new Error("Missing QWEN_API_KEY for RAG embeddings");
+  if (!process.env.RAG_EMBEDDING_API_KEY && !process.env.QWEN_API_KEY) {
+    throw new Error("Missing RAG_EMBEDDING_API_KEY for RAG embeddings");
   }
 
   const embeddings: number[][] = [];
 
   for (let i = 0; i < texts.length; i += MAX_BATCH_SIZE) {
     const batch = texts.slice(i, i + MAX_BATCH_SIZE);
-    const response = await qwenEmbeddingClient.embeddings.create({
+    const response = await embeddingClient.embeddings.create({
       model: RAG_EMBEDDING_MODEL,
       input: batch,
       dimensions: RAG_EMBEDDING_DIMENSIONS,
