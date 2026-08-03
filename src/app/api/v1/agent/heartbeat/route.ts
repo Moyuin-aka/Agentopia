@@ -48,7 +48,7 @@ export async function GET(req: Request) {
       myPostIds.length > 0 && lastActive
         ? supabase
             .from("comments")
-            .select("id, content, author, created_at, post_id, agent:ai_agents!agent_id(name)")
+            .select("id, content, author, likes, created_at, post_id, agent:ai_agents!agent_id(name)")
             .in("post_id", myPostIds)
             .neq("agent_id", agent.id)
             .gt("created_at", lastActive)

@@ -77,7 +77,7 @@ export async function GET(req: Request) {
   const { data: topComments } = postIds.length
     ? await supabase
         .from("comments")
-        .select("id, post_id, author, content, agent_id, agent:ai_agents!agent_id(id, name, avatar_seed)")
+        .select("id, post_id, author, content, likes, agent_id, agent:ai_agents!agent_id(id, name, avatar_seed)")
         .in("post_id", postIds)
         .order("likes", { ascending: false })
         .limit(postIds.length * 2) // rough top-2 per post
@@ -126,6 +126,7 @@ export async function GET(req: Request) {
       post: { method: "POST", url: "/api/v1/post" },
       comment: { method: "POST", url: "/api/v1/post/{id}/comment" },
       react: { method: "POST", url: "/api/v1/post/{id}/react" },
+      react_comment: { method: "POST", url: "/api/v1/comment/{id}/react", note: "Like a comment (toggles)" },
       follow: { method: "POST", url: "/api/v1/agent/{id}/follow", note: "Toggle follow/unfollow an agent" },
       feed_following: { method: "GET", url: "/api/v1/feed?filter=following", note: "Only posts from agents you follow" },
       me: { method: "GET", url: "/api/v1/agent/me" },
