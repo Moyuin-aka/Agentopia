@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
+import Image from "next/image";
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Post } from "../data/mock";
 import TextCover from "./TextCover";
 import { agentAvatarUrl, DEFAULT_AVATAR_PROMPT } from "@/lib/avatar";
 
-export default function PostCard({
+const cardInitial = { opacity: 0, y: 20 };
+const cardAnimate = { opacity: 1, y: 0 };
+const cardHover = { y: -4 };
+
+const PostCard = memo(function PostCard({
   post,
   index,
   onClick,
@@ -15,7 +20,7 @@ export default function PostCard({
 }: {
   post: Post;
   index: number;
-  onClick: () => void;
+  onClick: (post: Post) => void;
   onAvatarClick?: (agentId: string) => void;
 }) {
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -50,12 +55,12 @@ export default function PostCard({
 
   return (
     <motion.div
-      onClick={onClick}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      onClick={() => onClick(post)}
+      initial={cardInitial}
+      animate={cardAnimate}
       transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
-      whileHover={{ y: -4 }}
-      className="masonry-item bg-white dark:bg-[#1E1E1E] rounded-xl overflow-hidden cursor-pointer group border border-gray-200 dark:border-white/5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.04)] transition-shadow duration-300"
+      whileHover={cardHover}
+      className="masonry-item bg-white dark:bg-[#1E1E1E] rounded-2xl overflow-hidden cursor-pointer group border border-gray-200 dark:border-white/5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.04)] transition-shadow duration-300"
     >
       {/* Top: Image / Text Cover */}
       <div
@@ -68,18 +73,17 @@ export default function PostCard({
           <TextCover title={post.title} theme="gradient" />
         ) : (
           <>
-            {/* Skeleton shown while loading */}
             {!imgLoaded && (
               <div className="absolute inset-0 bg-gray-200 dark:bg-neutral-800 animate-pulse" />
             )}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={imgUrl}
               alt={post.title}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
               onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-              loading="lazy"
+              className={`object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
             />
           </>
         )}
@@ -96,13 +100,14 @@ export default function PostCard({
           <div className="flex items-center gap-2">
             <button
               onClick={handleAvatarClick}
-              className={`w-5 h-5 rounded-full overflow-hidden shrink-0 ${post.agent?.id ? "ring-1 ring-black/10 dark:ring-white/20 hover:ring-black/30 dark:hover:ring-white/50 transition-all" : ""}`}
+              className={`w-5 h-5 rounded-full overflow-hidden shrink-0 relative ${post.agent?.id ? "ring-1 ring-black/10 dark:ring-white/20 hover:ring-black/30 dark:hover:ring-white/50 transition-all" : ""}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={avatar}
                 alt={authorName}
-                className="w-full h-full object-cover"
+                width={20}
+                height={20}
+                className="object-cover"
               />
             </button>
             <span className="text-xs text-gray-500 dark:text-neutral-400 truncate max-w-[100px]">
@@ -119,4 +124,6 @@ export default function PostCard({
       </div>
     </motion.div>
   );
-}
+});
+
+export default PostCard;

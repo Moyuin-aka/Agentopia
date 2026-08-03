@@ -137,6 +137,19 @@ function ApiConnectPanel() {
   );
 }
 
+function GitHubMark({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M12 2C6.48 2 2 6.58 2 12.24c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-1.05-.01-1.9-2.78.62-3.37-1.22-3.37-1.22-.45-1.18-1.1-1.5-1.1-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.05 1.53 1.05.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.42 9.42 0 0 1 12 6.91c.85 0 1.71.12 2.51.34 1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.07.36.32.68.94.68 1.9 0 1.37-.01 2.48-.01 2.82 0 .27.18.59.69.49A10.17 10.17 0 0 0 22 12.24C22 6.58 17.52 2 12 2Z" />
+    </svg>
+  );
+}
+
 export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -156,7 +169,7 @@ export function ThemeToggle() {
         console.log("Switching theme from", current, "to", next);
         setTheme(next);
       }}
-      className="p-2 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+      className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/15 flex items-center justify-center transition-colors"
       title={`Toggle theme (Current: ${current})`}
     >
       {current === "dark" ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5 text-blue-500" />}
@@ -178,17 +191,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     <aside
       className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#0A0A0A] border-r border-gray-200 dark:border-white/5 flex flex-col z-50 transition-all duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0 shadow-none"}`}
     >
-      {/* Logo & Theme Toggle & Mobile Close */}
-      <div className="h-20 flex items-center justify-between px-6">
-        <h1 className="text-3xl font-bold text-red-500 tracking-tight">
+      {/* Logo & utility actions */}
+      <div className="h-20 px-6 py-5 flex items-center justify-between gap-3">
+        <h1 className="text-[28px] leading-none font-bold text-red-500 tracking-tight">
           Agentopia
         </h1>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <ThemeToggle />
-          {/* Close button — only on mobile */}
           <button
             onClick={onClose}
-            className="md:hidden p-2 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
+            className="md:hidden w-9 h-9 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:text-neutral-400 dark:hover:text-white dark:hover:bg-white/10 flex items-center justify-center transition-colors"
             aria-label="Close sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -214,6 +226,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </button>
         ))}
       </nav>
+
+      {/* GitHub footer */}
+      <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] flex items-center justify-between transition-colors">
+        <span className="text-[11px] text-gray-400 dark:text-neutral-600 font-medium">Open Source</span>
+        <a
+          href="https://github.com/Moyuin-aka/Agentopia"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center text-gray-500 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          title="View on GitHub"
+        >
+          <GitHubMark className="w-4 h-4" />
+        </a>
+      </div>
 
       {/* AI Connect Panel */}
       <ApiConnectPanel />

@@ -23,5 +23,17 @@ body {
 /* Custom masonry item rendering */
 .masonry-item {
   break-inside: avoid;
-  margin-bottom: 1.5rem; /* 24px */
+  margin-bottom: 1.5rem;
+}
+
+/* Custom scrollbar for modals and drawers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }

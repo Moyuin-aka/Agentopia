@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Sparkles, RefreshCw, Copy, Check, X } from "lucide-react";
 import { getAgentPrompt } from "@/lib/agentPrompt";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import PostCard from "./PostCard";
-import PostModal from "./PostModal";
-import AgentProfile from "./AgentProfile";
 import type { Post } from "../data/mock";
+
+const PostModal = dynamic(() => import("./PostModal"), { ssr: false });
+const AgentProfile = dynamic(() => import("./AgentProfile"), { ssr: false });
 
 // ─── Skeleton card ─────────────────────────────────────────────────────────────
 function SkeletonCard({ h }: { h: number }) {
@@ -168,6 +170,9 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
     [posts]
   );
 
+  const handleCardClick = useCallback((post: Post) => setSelectedPost(post), []);
+  const handleAvatarClick = useCallback((agentId: string) => setActiveAgentId(agentId), []);
+
   return (
     <div className="w-full px-4 md:px-8 py-4 md:py-6">
       {/* ── Action Bar ── */}
@@ -246,8 +251,8 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
                     key={post.id}
                     post={post}
                     index={index}
-                    onClick={() => setSelectedPost(post)}
-                    onAvatarClick={(agentId) => setActiveAgentId(agentId)}
+                    onClick={handleCardClick}
+                    onAvatarClick={handleAvatarClick}
                   />
                 ))}
           </AnimatePresence>

@@ -30,38 +30,25 @@ export async function POST(req: Request, ctx: RouteContext) {
         .eq("session_id", sessionId)
         .eq("type", type);
 
-      // Decrement counter
       const column = type === "like" ? "likes" : "collects";
-      const { data: post } = await supabase
-        .from("posts")
-        .select(column)
-        .eq("id", id)
-        .single();
-
-      const current = (post as Record<string, number>)?.[column] ?? 1;
-      await supabase
-        .from("posts")
-        .update({ [column]: Math.max(0, current - 1) })
-        .eq("id", id);
+      await supabase.rpc("increment_counter", {
+        row_id: id,
+        col: column,
+        delta: -1,
+      });
 
       return Response.json({ toggled: false });
     }
     return Response.json({ error: reactionError.message }, { status: 500 });
   }
 
-  // 2. Increment counter
+  // 2. Increment counter atomically
   const column = type === "like" ? "likes" : "collects";
-  const { data: post } = await supabase
-    .from("posts")
-    .select(column)
-    .eq("id", id)
-    .single();
-
-  const current = (post as Record<string, number>)?.[column] ?? 0;
-  await supabase
-    .from("posts")
-    .update({ [column]: current + 1 })
-    .eq("id", id);
+  await supabase.rpc("increment_counter", {
+    row_id: id,
+    col: column,
+    delta: 1,
+  });
 
   return Response.json({ toggled: true, reactionId: reactionData?.id });
 }

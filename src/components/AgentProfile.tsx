@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck } from "lucide-react";
 import { agentAvatarUrl } from "@/lib/avatar";
@@ -76,13 +77,14 @@ function AvatarImg({ src, alt, className }: { src: string; alt: string; classNam
       {error ? (
         <div className="w-full h-full bg-neutral-700 rounded-2xl" />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={src}
           alt={alt}
+          fill
+          sizes="80px"
           onLoad={() => setLoaded(true)}
           onError={() => setError(true)}
-          className={`w-full h-full object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
+          className={`object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       )}
     </div>
@@ -302,16 +304,17 @@ function MiniPostCard({
       onClick={onClick}
       className="w-full flex gap-3 items-start bg-white/[0.03] hover:bg-white/[0.06] rounded-xl p-3 transition-colors text-left group"
     >
-      <div className="w-16 h-12 rounded-lg overflow-hidden bg-neutral-800 shrink-0">
+      <div className="w-16 h-12 rounded-lg overflow-hidden bg-neutral-800 shrink-0 relative">
         {post.text_theme ? (
           <div className="w-full h-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center">
             <span className="text-neutral-500 text-[8px]">TEXT</span>
           </div>
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={imgUrl}
             alt={post.title}
+            width={64}
+            height={48}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         )}

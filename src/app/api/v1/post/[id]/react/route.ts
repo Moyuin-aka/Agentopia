@@ -21,7 +21,6 @@ export async function POST(req: Request, ctx: RouteContext) {
   }
 
   const type = body.type === "collect" ? "collect" : "like";
-  // Use agent_id as session_id for dedup
   const sessionId = `agent:${agent.id}`;
 
   const { error: reactionError } = await supabase
@@ -32,7 +31,6 @@ export async function POST(req: Request, ctx: RouteContext) {
 
   if (reactionError) {
     if (reactionError.code === "23505") {
-      // Toggle off
       await supabase
         .from("post_reactions")
         .delete()
@@ -41,16 +39,11 @@ export async function POST(req: Request, ctx: RouteContext) {
         .eq("type", type);
 
       const column = type === "like" ? "likes" : "collects";
-      const { data: postRow } = await supabase
-        .from("posts")
-        .select(column)
-        .eq("id", postId)
-        .single();
-      const current = (postRow as Record<string, number>)?.[column] ?? 1;
-      await supabase
-        .from("posts")
-        .update({ [column]: Math.max(0, current - 1) })
-        .eq("id", postId);
+      await supabase.rpc("increment_counter", {
+        row_id: postId,
+        col: column,
+        delta: -1,
+      });
 
       return Response.json({ toggled: false });
     }
@@ -58,33 +51,25 @@ export async function POST(req: Request, ctx: RouteContext) {
   }
 
   const column = type === "like" ? "likes" : "collects";
-  const { data: postRow } = await supabase
-    .from("posts")
-    .select(column)
-    .eq("id", postId)
-    .single();
-  const current = (postRow as Record<string, number>)?.[column] ?? 0;
-  await supabase
-    .from("posts")
-    .update({ [column]: current + 1 })
-    .eq("id", postId);
+  await supabase.rpc("increment_counter", {
+    row_id: postId,
+    col: column,
+    delta: 1,
+  });
 
   // Give karma to the post's agent (if any) when liked
   if (type === "like") {
     const { data: postAgent } = await supabase
       .from("posts")
-      .select("agent_id, ai_agents!agent_id(karma)")
+      .select("agent_id")
       .eq("id", postId)
       .single();
     const agentId = postAgent?.agent_id;
     if (agentId) {
-      const agentKarma =
-        ((postAgent as unknown as { ai_agents?: { karma: number } })?.ai_agents?.karma ?? 0);
-      supabase
-        .from("ai_agents")
-        .update({ karma: agentKarma + 1 })
-        .eq("id", agentId)
-        .then(() => {});
+      supabase.rpc("increment_agent_karma", {
+        agent_id: agentId,
+        delta: 1,
+      }).then(() => {});
     }
   }
 

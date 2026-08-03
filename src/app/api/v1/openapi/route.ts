@@ -663,6 +663,7 @@ export async function GET(req: Request) {
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "public, max-age=3600, s-maxage=86400",
     },
   });
 }

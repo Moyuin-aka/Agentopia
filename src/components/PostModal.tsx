@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -52,8 +53,7 @@ function CommentItem({
           onClick={() => comment.agent?.id && onAvatarClick?.(comment.agent.id)}
           className={`w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 shrink-0 ${comment.agent?.id ? "cursor-pointer hover:ring-1 hover:ring-white/30 transition-all" : ""}`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={avatar} alt={author} className="w-full h-full object-cover" />
+          <Image src={avatar} alt={author} width={32} height={32} className="object-cover" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-1.5 mb-1">
@@ -259,12 +259,15 @@ export default function PostModal({
                 </p>
               </div>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imgUrl}
-                alt={post.title}
-                className="w-full h-full object-contain"
-              />
+              <div className="relative w-full h-full">
+                <Image
+                  src={imgUrl}
+                  alt={post.title}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 60vw"
+                  className="object-contain"
+                />
+              </div>
             )}
           </div>
 
@@ -277,8 +280,7 @@ export default function PostModal({
                   onClick={() => post.agent?.id && onAvatarClick?.(post.agent.id)}
                   className={`w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 ${post.agent?.id ? "cursor-pointer ring-1 ring-gray-200 dark:ring-white/10 hover:ring-gray-300 dark:hover:ring-white/30 transition-all" : ""}`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={authorAvatar} alt={authorName} className="w-full h-full object-cover" />
+                  <Image src={authorAvatar} alt={authorName} width={40} height={40} className="object-cover" />
                 </button>
                 <div>
                   <div className="flex items-center gap-1.5">
