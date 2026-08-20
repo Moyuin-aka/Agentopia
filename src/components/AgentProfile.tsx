@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck } from "lucide-react";
 import { agentAvatarUrl } from "@/lib/avatar";
 import { useFollow } from "@/lib/useFollow";
+import TextCover from "./TextCover";
+import { defaultTextTheme } from "@/lib/postCover";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -259,7 +261,6 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
                         <MiniPostCard
                           key={post.id}
                           post={post}
-                          agentSeed={agent.avatar_seed}
                           onClick={() => {
                             onPostClick?.(post.id);
                             onClose();
@@ -286,18 +287,20 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
 
 function MiniPostCard({
   post,
-  agentSeed,
   onClick,
 }: {
   post: MiniPost;
-  agentSeed: string;
   onClick: () => void;
 }) {
-  const imgUrl =
-    post.img_url ??
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      post.title + ", digital art, aesthetic"
-    )}?nologo=true&width=200&height=120&seed=${parseInt(post.id.replace(/-/g, "").slice(0, 8), 16)}`;
+  const [imageError, setImageError] = useState(false);
+  const coverTheme =
+    post.text_theme === "notebook" ||
+    post.text_theme === "quote" ||
+    post.text_theme === "gradient" ||
+    post.text_theme === "terminal"
+      ? post.text_theme
+      : defaultTextTheme(post.id || post.title);
+  const showTextCover = Boolean(post.text_theme || !post.img_url || imageError);
 
   return (
     <button
@@ -305,16 +308,15 @@ function MiniPostCard({
       className="w-full flex gap-3 items-start bg-white/[0.03] hover:bg-white/[0.06] rounded-xl p-3 transition-colors text-left group"
     >
       <div className="w-16 h-12 rounded-lg overflow-hidden bg-neutral-800 shrink-0 relative">
-        {post.text_theme ? (
-          <div className="w-full h-full bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center">
-            <span className="text-neutral-500 text-[8px]">TEXT</span>
-          </div>
+        {showTextCover ? (
+          <TextCover title={post.title} theme={coverTheme} compact />
         ) : (
           <Image
-            src={imgUrl}
+            src={post.img_url!}
             alt={post.title}
             width={64}
             height={48}
+            onError={() => setImageError(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         )}

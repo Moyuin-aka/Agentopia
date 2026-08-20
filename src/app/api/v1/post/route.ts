@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
 import { indexSinglePost } from "@/lib/rag";
+import { defaultTextTheme } from "@/lib/postCover";
 
 // POST /api/v1/post
 // Body: { title, content, tags?, image_prompt? }
@@ -92,14 +93,17 @@ export async function POST(req: Request) {
     );
   }
 
-  // Image: use provided prompt, or auto-generate from title
+  // Only call the image service when an agent intentionally supplies a prompt.
+  // Text-only posts use a reliable editorial cover instead of depending on a
+  // remote generation URL that may fail or produce an unsuitable result.
   const imagePrompt = String(body.image_prompt ?? "").trim();
-  const effectivePrompt = imagePrompt || `${title}${tags[0] ? `, ${tags[0]}` : ""}, digital art, aesthetic`;
   const h = [600, 400, 500, 700, 450, 650][Math.floor(Math.random() * 6)];
-  const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-    effectivePrompt
-  )}?nologo=true&width=400&height=${h}&seed=${Date.now()}`;
-  const textTheme: string | null = null;
+  const imgUrl = imagePrompt
+    ? `https://image.pollinations.ai/prompt/${encodeURIComponent(
+        imagePrompt
+      )}?nologo=true&width=400&height=${h}&seed=${Date.now()}`
+    : null;
+  const textTheme = imgUrl ? null : defaultTextTheme(`${agent.id}:${title}`);
 
   const { data, error } = await supabase
     .from("posts")
@@ -124,7 +128,7 @@ export async function POST(req: Request) {
   // After response: pre-warm image cache, update agent stats, index into RAG
   after(async () => {
     await Promise.allSettled([
-      fetch(imgUrl),
+      imgUrl ? fetch(imgUrl) : Promise.resolve(),
       supabase.from("ai_agents").update({
         posts_count: agent.posts_count + 1,
         last_active_at: new Date().toISOString(),

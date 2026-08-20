@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Sparkles, RefreshCw, Copy, Check, X } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Sparkles, RefreshCw, Copy, Check, X, Hash, ChevronLeft, ChevronRight } from "lucide-react";
 import { getAgentPrompt } from "@/lib/agentPrompt";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -103,6 +103,99 @@ function AiPromptModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Tag Bar ─────────────────────────────────────────────────────────────────
+function TagBar({
+  activeTag,
+  onTagClick,
+}: {
+  activeTag: string | null;
+  onTagClick: (tag: string | null) => void;
+}) {
+  const [tags, setTags] = useState<{ name: string; count: number }[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/tags")
+      .then((r) => r.json())
+      .then((d) => setTags(d.tags ?? []))
+      .catch(() => {});
+  }, []);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    return () => el.removeEventListener("scroll", checkScroll);
+  }, [tags, checkScroll]);
+
+  const scroll = (dir: number) => {
+    scrollRef.current?.scrollBy({ left: dir * 200, behavior: "smooth" });
+  };
+
+  if (tags.length === 0) return null;
+
+  return (
+    <div className="relative group/tags mb-4">
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll(-1)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white dark:bg-neutral-800 shadow border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-neutral-400 opacity-0 group-hover/tags:opacity-100 transition-opacity"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+      )}
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-2 overflow-x-auto scrollbar-hide"
+      >
+        <button
+          onClick={() => onTagClick(null)}
+          className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            !activeTag
+              ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+              : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-white/10"
+          }`}
+        >
+          全部
+        </button>
+        {tags.map((t) => (
+          <button
+            key={t.name}
+            onClick={() => onTagClick(activeTag === t.name ? null : t.name)}
+            className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              activeTag === t.name
+                ? "bg-gray-900 dark:bg-white text-white dark:text-black"
+                : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-neutral-400 hover:bg-gray-200 dark:hover:bg-white/10"
+            }`}
+          >
+            <Hash className="w-3 h-3" />
+            {t.name}
+            <span className="text-[10px] opacity-60">{t.count}</span>
+          </button>
+        ))}
+      </div>
+      {canScrollRight && (
+        <button
+          onClick={() => scroll(1)}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-white dark:bg-neutral-800 shadow border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-500 dark:text-neutral-400 opacity-0 group-hover/tags:opacity-100 transition-opacity"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Main feed ────────────────────────────────────────────────────────────────
 export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string }) {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -112,6 +205,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedTab, setFeedTab] = useState<"all" | "following">("all");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
 
   const loadFollowedIds = useCallback(() => {
@@ -122,7 +216,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
     }
   }, []);
 
-  const fetchPosts = useCallback(async (q: string, tab: "all" | "following", ids: string[]) => {
+  const fetchPosts = useCallback(async (q: string, tab: "all" | "following", ids: string[], tag: string | null) => {
     setLoading(true);
     setError(null);
     try {
@@ -130,8 +224,13 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
       if (tab === "following") {
         url = ids.length > 0 ? `/api/posts?agent_ids=${ids.join(",")}` : null!;
         if (!url) { setPosts([]); setLoading(false); return; }
+      } else if (q) {
+        url = `/api/search?q=${encodeURIComponent(q)}`;
       } else {
-        url = q ? `/api/search?q=${encodeURIComponent(q)}` : "/api/posts";
+        url = "/api/posts";
+      }
+      if (tag && !q) {
+        url += (url.includes("?") ? "&" : "?") + `tag=${encodeURIComponent(tag)}`;
       }
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -148,19 +247,19 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
   useEffect(() => {
     const ids = loadFollowedIds();
     setFollowedIds(ids);
-    fetchPosts(searchQuery, feedTab, ids);
-  }, [fetchPosts, searchQuery, feedTab, loadFollowedIds]);
+    fetchPosts(searchQuery, feedTab, ids, activeTag);
+  }, [fetchPosts, searchQuery, feedTab, activeTag, loadFollowedIds]);
 
   // Sync follow list when AgentProfile toggles a follow
   useEffect(() => {
     const handler = () => {
       const ids = loadFollowedIds();
       setFollowedIds(ids);
-      if (feedTab === "following") fetchPosts(searchQuery, "following", ids);
+      if (feedTab === "following") fetchPosts(searchQuery, "following", ids, activeTag);
     };
     window.addEventListener("agentopia_follows_changed", handler);
     return () => window.removeEventListener("agentopia_follows_changed", handler);
-  }, [feedTab, searchQuery, fetchPosts, loadFollowedIds]);
+  }, [feedTab, activeTag, searchQuery, fetchPosts, loadFollowedIds]);
 
   const handleAgentPostClick = useCallback(
     (postId: string) => {
@@ -172,6 +271,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
 
   const handleCardClick = useCallback((post: Post) => setSelectedPost(post), []);
   const handleAvatarClick = useCallback((agentId: string) => setActiveAgentId(agentId), []);
+  const handleTagClick = useCallback((tag: string | null) => setActiveTag(tag), []);
 
   return (
     <div className="w-full px-4 md:px-8 py-4 md:py-6">
@@ -188,7 +288,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
 
         <div className="flex items-center gap-3">
           <button
-            onClick={() => fetchPosts(searchQuery, feedTab, followedIds)}
+            onClick={() => fetchPosts(searchQuery, feedTab, followedIds, activeTag)}
             disabled={loading}
             title="刷新"
             className="p-2 rounded-full text-gray-400 dark:text-neutral-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/5 transition-colors disabled:opacity-40"
@@ -227,12 +327,17 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
         </div>
       )}
 
+      {/* ── Tag Bar ── */}
+      {!searchQuery && feedTab === "all" && (
+        <TagBar activeTag={activeTag} onTagClick={handleTagClick} />
+      )}
+
       {/* ── Error state ── */}
       {error && (
         <div className="text-center py-16 text-gray-500 dark:text-neutral-400">
           <p className="text-lg mb-4">{error}</p>
           <button
-            onClick={() => fetchPosts(searchQuery, feedTab, followedIds)}
+            onClick={() => fetchPosts(searchQuery, feedTab, followedIds, activeTag)}
             className="px-6 py-2 rounded-full bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-900 dark:text-white text-sm transition-colors"
           >
             重试
