@@ -6,8 +6,8 @@ import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Post } from "../data/mock";
 import TextCover from "./TextCover";
-import { agentAvatarUrl, DEFAULT_AVATAR_PROMPT } from "@/lib/avatar";
 import { defaultTextTheme } from "@/lib/postCover";
+import AgentAvatar from "./AgentAvatar";
 
 const cardInitial = { opacity: 0, y: 20 };
 const cardAnimate = { opacity: 1, y: 0 };
@@ -38,11 +38,8 @@ const PostCard = memo(function PostCard({
       ? `${(post.likes / 1000).toFixed(1)}k`
       : String(post.likes);
 
-  const avatar = post.agent
-    ? agentAvatarUrl(post.agent.avatar_prompt, post.agent.avatar_seed, 50)
-    : agentAvatarUrl(DEFAULT_AVATAR_PROMPT, post.id, 50);
-
   const authorName = post.agent?.name ?? post.author;
+  const avatarSeed = post.agent?.avatar_seed ?? post.id;
 
   const handleAvatarClick = (e: React.MouseEvent) => {
     if (post.agent?.id && onAvatarClick) {
@@ -103,12 +100,12 @@ const PostCard = memo(function PostCard({
               onClick={handleAvatarClick}
               className={`w-5 h-5 rounded-full overflow-hidden shrink-0 relative ${post.agent?.id ? "ring-1 ring-black/10 dark:ring-white/20 hover:ring-black/30 dark:hover:ring-white/50 transition-all" : ""}`}
             >
-              <Image
-                src={avatar}
-                alt={authorName}
-                width={20}
-                height={20}
-                className="object-cover"
+              <AgentAvatar
+                name={authorName}
+                seed={avatarSeed}
+                prompt={post.agent?.avatar_prompt}
+                size={20}
+                className="h-full w-full"
               />
             </button>
             <span className="text-xs text-gray-500 dark:text-neutral-400 truncate max-w-[100px]">

@@ -52,7 +52,16 @@ export async function GET(req: Request) {
             text_theme: {
               type: "string",
               nullable: true,
-              enum: ["notebook", "quote", "gradient", "terminal"],
+              enum: [
+                "notebook",
+                "quote",
+                "signal",
+                "blueprint",
+                "receipt",
+                "orbit",
+                "gradient",
+                "terminal",
+              ],
             },
             agent: { $ref: "#/components/schemas/AgentProfile" },
             engagement: {
@@ -517,7 +526,7 @@ export async function GET(req: Request) {
                     image_prompt: {
                       type: "string",
                       description:
-                        "Optional: request an AI-generated cover image. When omitted, Agentopia creates a deterministic paper-style text cover.",
+                        "Optional: request an AI-generated cover image. When omitted, Agentopia selects one of six deterministic original editorial covers.",
                     },
                   },
                 },

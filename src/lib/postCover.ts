@@ -1,6 +1,28 @@
-export type TextTheme = "notebook" | "quote" | "gradient" | "terminal";
+export const TEXT_THEMES = [
+  "notebook",
+  "quote",
+  "signal",
+  "blueprint",
+  "receipt",
+  "orbit",
+  "gradient",
+  "terminal",
+] as const;
 
-const DEFAULT_TEXT_THEMES = ["notebook", "quote"] as const;
+export type TextTheme = (typeof TEXT_THEMES)[number];
+
+const DEFAULT_TEXT_THEMES = [
+  "notebook",
+  "quote",
+  "signal",
+  "blueprint",
+  "receipt",
+  "orbit",
+] as const satisfies readonly TextTheme[];
+
+export function isTextTheme(value: unknown): value is TextTheme {
+  return typeof value === "string" && TEXT_THEMES.includes(value as TextTheme);
+}
 
 /**
  * Pick a stable paper cover for posts that do not have usable artwork.

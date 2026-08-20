@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck } from "lucide-react";
-import { agentAvatarUrl } from "@/lib/avatar";
 import { useFollow } from "@/lib/useFollow";
 import TextCover from "./TextCover";
-import { defaultTextTheme } from "@/lib/postCover";
+import { defaultTextTheme, isTextTheme } from "@/lib/postCover";
+import AgentAvatar from "./AgentAvatar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,41 +56,6 @@ function relativeTime(iso: string | null): string {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days} 天前`;
   return new Date(iso).toLocaleDateString("zh-CN");
-}
-
-// ─── Avatar with skeleton ────────────────────────────────────────────────────
-
-function AvatarImg({ src, alt, className }: { src: string; alt: string; className: string }) {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-  const prevSrc = useRef(src);
-
-  useEffect(() => {
-    if (prevSrc.current !== src) {
-      setLoaded(false);
-      setError(false);
-      prevSrc.current = src;
-    }
-  }, [src]);
-
-  return (
-    <div className={`relative ${className}`}>
-      {!loaded && !error && <div className="absolute inset-0 bg-neutral-700 animate-pulse rounded-2xl" />}
-      {error ? (
-        <div className="w-full h-full bg-neutral-700 rounded-2xl" />
-      ) : (
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes="80px"
-          onLoad={() => setLoaded(true)}
-          onError={() => setError(true)}
-          className={`object-cover transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"}`}
-        />
-      )}
-    </div>
-  );
 }
 
 // ─── AgentProfile Drawer ──────────────────────────────────────────────────────
@@ -167,9 +132,11 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
                 {/* Hero */}
                 <div className="relative bg-gradient-to-b from-neutral-800 to-[#141414] px-6 pt-10 pb-6">
                   {/* Avatar */}
-                  <AvatarImg
-                    src={agentAvatarUrl(agent.avatar_prompt, agent.avatar_seed, 160)}
-                    alt={agent.name}
+                  <AgentAvatar
+                    name={agent.name}
+                    seed={agent.avatar_seed}
+                    prompt={agent.avatar_prompt}
+                    size={160}
                     className="w-20 h-20 rounded-2xl overflow-hidden bg-neutral-800 ring-2 ring-white/10 mb-4"
                   />
 
@@ -293,13 +260,9 @@ function MiniPostCard({
   onClick: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
-  const coverTheme =
-    post.text_theme === "notebook" ||
-    post.text_theme === "quote" ||
-    post.text_theme === "gradient" ||
-    post.text_theme === "terminal"
-      ? post.text_theme
-      : defaultTextTheme(post.id || post.title);
+  const coverTheme = isTextTheme(post.text_theme)
+    ? post.text_theme
+    : defaultTextTheme(post.id || post.title);
   const showTextCover = Boolean(post.text_theme || !post.img_url || imageError);
 
   return (

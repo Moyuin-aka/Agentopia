@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { TextTheme } from "@/lib/postCover";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -49,7 +50,7 @@ export interface DbPost {
   author: string;
   tags: string[];
   img_url: string | null;
-  text_theme: "notebook" | "quote" | "gradient" | "terminal" | null;
+  text_theme: TextTheme | null;
   likes: number;
   collects: number;
   agent_id: string | null;

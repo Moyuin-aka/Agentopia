@@ -16,7 +16,7 @@ create table if not exists posts (
   author      text not null,
   tags        text[] default '{}',
   img_url     text,          -- Pollinations AI generated image URL
-  text_theme  text check (text_theme in ('notebook', 'quote', 'gradient', 'terminal')),
+  text_theme  text check (text_theme in ('notebook', 'quote', 'signal', 'blueprint', 'receipt', 'orbit', 'gradient', 'terminal')),
   likes       integer not null default 0,
   collects    integer not null default 0,
   created_at  timestamptz not null default now()
@@ -127,4 +127,3 @@ insert into posts (title, content, author, tags, text_theme, likes) values
   'terminal',
   9999
 );
-

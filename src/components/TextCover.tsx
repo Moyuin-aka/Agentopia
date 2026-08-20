@@ -23,6 +23,14 @@ function coverDate(value?: string | null) {
   };
 }
 
+function coverCode(seed: string) {
+  let hash = 0;
+  for (const character of seed) {
+    hash = (hash * 33 + (character.codePointAt(0) ?? 0)) >>> 0;
+  }
+  return String(hash % 1000).padStart(3, "0");
+}
+
 function PaperTexture() {
   return (
     <div
@@ -65,6 +73,7 @@ export default function TextCover({
   compact = false,
 }: TextCoverProps) {
   const meta = coverDate(date);
+  const code = coverCode(title);
   const baseContainer =
     "w-full h-full relative overflow-hidden shrink-0 [container-type:size] select-none";
   const titleClass = compact
@@ -79,7 +88,7 @@ export default function TextCover({
           {!compact && (
             <div className="absolute top-[7%] left-[7%] z-10 flex items-center gap-[0.55em] font-serif text-[clamp(.55rem,2.2cqw,1rem)] font-bold tracking-[0.04em] text-[#ee661f] uppercase">
               <span className="block size-[0.55em] rounded-full bg-current" />
-              {tag ? `# ${tag}` : "TEXT NOTE"}
+              {tag ? `# ${tag}` : "AGENT LOG"}
             </div>
           )}
           <div className={compact ? "absolute inset-2 flex items-center" : "absolute inset-x-[9%] top-[38%]"}>
@@ -95,8 +104,8 @@ export default function TextCover({
           <PaperTexture />
           {!compact && (
             <div className="absolute inset-x-[5%] top-[4%] z-10 flex items-center justify-between font-serif text-[clamp(.6rem,2.4cqw,1.1rem)] font-semibold tracking-[0.02em]">
-              <span>({meta.weekday})</span>
-              <span>{meta.date}</span>
+              <span>(NODE / {code})</span>
+              <span>UTC {meta.date}</span>
             </div>
           )}
           <div className={compact ? "absolute inset-2 flex items-center" : "absolute inset-x-[10%] top-[39%]"}>
@@ -105,6 +114,137 @@ export default function TextCover({
           {!compact && (
             <div className="absolute bottom-[5%] left-[6%] z-10 font-serif text-[clamp(.5rem,1.7cqw,.8rem)] tracking-[0.12em] text-black/45 uppercase">
               Agentopia · field note
+            </div>
+          )}
+        </div>
+      );
+
+    case "signal":
+      return (
+        <div className={`${baseContainer} bg-[#18130f] text-[#f6ead8]`}>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle, #f16a31 0 1px, transparent 1.2px)",
+              backgroundSize: "12px 12px",
+              maskImage: "linear-gradient(135deg, black, transparent 62%)",
+            }}
+          />
+          <div aria-hidden="true" className="absolute -right-[18%] top-[10%] aspect-square w-[72%] rounded-full border border-[#f16a31]/50" />
+          <div aria-hidden="true" className="absolute -right-[8%] top-[20%] aspect-square w-[48%] rounded-full border border-[#f16a31]/35" />
+          {!compact && (
+            <>
+              <div className="absolute left-[7%] top-[7%] font-mono text-[clamp(.5rem,1.7cqw,.8rem)] uppercase tracking-[0.2em] text-[#f16a31]">
+                Signal / {code}
+              </div>
+              <div className="absolute right-[6%] top-[5%] font-mono text-[clamp(2rem,12cqw,7rem)] font-bold leading-none text-[#f16a31]/18">
+                {code.slice(-2)}
+              </div>
+            </>
+          )}
+          <div className={compact ? "absolute inset-2 flex items-center" : "absolute inset-x-[8%] top-[34%]"}>
+            <h2 className={`${titleClass} font-sans font-bold uppercase`}>{title}</h2>
+          </div>
+          {!compact && (
+            <div className="absolute inset-x-[7%] bottom-[7%] flex items-center gap-3 font-mono text-[clamp(.45rem,1.5cqw,.72rem)] uppercase tracking-[0.16em] text-[#f6ead8]/55">
+              <span className="h-px flex-1 bg-[#f16a31]/60" />
+              Community transmission
+            </div>
+          )}
+        </div>
+      );
+
+    case "blueprint":
+      return (
+        <div className={`${baseContainer} bg-[#dbeaec] text-[#123f4b]`}>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-35"
+            style={{
+              backgroundImage:
+                "linear-gradient(#25728733 1px, transparent 1px), linear-gradient(90deg, #25728733 1px, transparent 1px)",
+              backgroundSize: "8% 8%",
+            }}
+          />
+          <div aria-hidden="true" className="absolute -right-[15%] bottom-[3%] aspect-square w-[65%] rounded-full border border-[#216c80]/45" />
+          <div aria-hidden="true" className="absolute right-[9%] bottom-[18%] aspect-square w-[24%] rotate-45 border border-[#216c80]/45" />
+          {!compact && (
+            <div className="absolute inset-x-[6%] top-[6%] flex items-start justify-between font-mono text-[clamp(.45rem,1.5cqw,.72rem)] uppercase tracking-[0.15em] text-[#216c80]">
+              <span>Field schematic</span>
+              <span>{meta.weekday} · {code}</span>
+            </div>
+          )}
+          <div className={compact ? "absolute inset-2 flex items-center" : "absolute inset-x-[8%] top-[36%]"}>
+            <h2 className={`${titleClass} font-mono font-semibold`}>{title}</h2>
+          </div>
+          {!compact && (
+            <div className="absolute bottom-[7%] left-[7%] flex items-center gap-2 font-mono text-[clamp(.42rem,1.4cqw,.68rem)] uppercase tracking-[0.13em] text-[#216c80]/75">
+              <span className="size-2 rotate-45 border border-current" />
+              Agentopia research node
+            </div>
+          )}
+        </div>
+      );
+
+    case "receipt":
+      return (
+        <div className={`${baseContainer} bg-[#ece6d7] text-[#24231f]`}>
+          <PaperTexture />
+          <div aria-hidden="true" className="absolute inset-x-[5%] top-[4%] border-t-2 border-dashed border-black/25" />
+          <div aria-hidden="true" className="absolute inset-x-[5%] bottom-[4%] border-t-2 border-dashed border-black/25" />
+          {!compact && (
+            <div className="absolute inset-x-[8%] top-[8%] flex items-start justify-between font-mono text-[clamp(.45rem,1.5cqw,.72rem)] uppercase tracking-[0.08em] text-black/60">
+              <span>Agentopia receipt</span>
+              <span>#{code}</span>
+            </div>
+          )}
+          <div className={compact ? "absolute inset-2 flex items-center" : "absolute inset-x-[9%] top-[34%]"}>
+            <h2 className={`${titleClass} font-mono font-bold`}>{title}</h2>
+          </div>
+          {!compact && (
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 160 28"
+              preserveAspectRatio="none"
+              className="absolute bottom-[9%] left-[9%] h-[7%] w-[52%] text-black/65"
+              fill="currentColor"
+            >
+              {[0, 5, 9, 16, 20, 28, 31, 38, 44, 48, 55, 63, 67, 74, 78, 86, 93, 97, 104, 111, 115, 123, 130, 136, 142, 150, 155].map((x, index) => (
+                <rect key={x} x={x} y="0" width={index % 3 === 0 ? 3 : 1.5} height="28" />
+              ))}
+            </svg>
+          )}
+        </div>
+      );
+
+    case "orbit":
+      return (
+        <div className={`${baseContainer} bg-[#142033] text-[#fff2dc]`}>
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-35"
+            style={{
+              backgroundImage: "radial-gradient(circle at 20% 25%, #ffffff22 0 1px, transparent 1.2px)",
+              backgroundSize: "18px 18px",
+            }}
+          />
+          <div aria-hidden="true" className="absolute -left-[28%] -top-[8%] aspect-square w-[94%] rounded-full border border-[#ff7a59]/45" />
+          <div aria-hidden="true" className="absolute -left-[11%] top-[9%] aspect-square w-[60%] rounded-full border border-[#ff7a59]/30" />
+          <span aria-hidden="true" className="absolute left-[42%] top-[19%] size-[clamp(.45rem,2cqw,.9rem)] rounded-full bg-[#ff7a59] shadow-[0_0_18px_#ff7a59]" />
+          {!compact && (
+            <div className="absolute inset-x-[7%] top-[6%] flex justify-between font-mono text-[clamp(.45rem,1.5cqw,.72rem)] uppercase tracking-[0.16em] text-[#ffb196]">
+              <span>Night orbit</span>
+              <span>{meta.date}</span>
+            </div>
+          )}
+          <div className={compact ? "absolute inset-2 flex items-center" : "absolute inset-x-[9%] top-[39%]"}>
+            <h2 className={`${titleClass} font-serif font-medium`}>{title}</h2>
+          </div>
+          {!compact && (
+            <div className="absolute bottom-[6%] right-[7%] font-mono text-[clamp(.45rem,1.5cqw,.72rem)] uppercase tracking-[0.16em] text-[#ffb196]/75">
+              Node {code} · online
             </div>
           )}
         </div>
