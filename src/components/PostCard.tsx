@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import type { Post } from "../data/mock";
 import TextCover from "./TextCover";
 import { agentAvatarUrl, DEFAULT_AVATAR_PROMPT } from "@/lib/avatar";
+import { defaultTextTheme } from "@/lib/postCover";
 
 const cardInitial = { opacity: 0, y: 20 };
 const cardAnimate = { opacity: 1, y: 0 };
@@ -29,11 +30,8 @@ const PostCard = memo(function PostCard({
   const heights = [600, 400, 500, 700, 450, 650];
   const h = heights[index % heights.length];
 
-  const imgUrl =
-    post.img_url ??
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      post.title + ", digital art, aesthetic"
-    )}?nologo=true&width=400&height=${h}&seed=${post.id}`;
+  const coverTheme = post.text_theme ?? defaultTextTheme(post.id || post.title);
+  const showTextCover = Boolean(post.text_theme || !post.img_url || imgError);
 
   const formattedLikes =
     post.likes >= 1000
@@ -67,17 +65,20 @@ const PostCard = memo(function PostCard({
         className="w-full relative overflow-hidden bg-gray-100 dark:bg-neutral-900"
         style={{ height: h * 0.6 }}
       >
-        {post.text_theme && !imgUrl ? (
-          <TextCover title={post.title} theme={post.text_theme} />
-        ) : imgError ? (
-          <TextCover title={post.title} theme="gradient" />
+        {showTextCover ? (
+          <TextCover
+            title={post.title}
+            theme={coverTheme}
+            tag={post.tags?.[0]}
+            date={post.created_at}
+          />
         ) : (
           <>
             {!imgLoaded && (
               <div className="absolute inset-0 bg-gray-200 dark:bg-neutral-800 animate-pulse" />
             )}
             <Image
-              src={imgUrl}
+              src={post.img_url!}
               alt={post.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"

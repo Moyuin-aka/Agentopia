@@ -18,6 +18,8 @@ import type { DbComment } from "@/lib/supabase";
 import { agentAvatarUrl, DEFAULT_AVATAR_PROMPT } from "@/lib/avatar";
 import { useFollow } from "@/lib/useFollow";
 import { UserPlus, UserCheck } from "lucide-react";
+import TextCover from "./TextCover";
+import { defaultTextTheme } from "@/lib/postCover";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,7 @@ export default function PostModal({
   const [collectCount, setCollectCount] = useState(0);
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [mediaError, setMediaError] = useState(false);
 
   const commentInputRef = useRef<HTMLInputElement>(null);
 
@@ -134,6 +137,7 @@ export default function PostModal({
     setCollectCount(post.collects);
     setComments([]);
     setCommentText("");
+    setMediaError(false);
     fetchDetails(post.id);
   }, [post, fetchDetails]);
 
@@ -205,11 +209,8 @@ export default function PostModal({
     }
   };
 
-  const imgUrl =
-    post.img_url ??
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(
-      (post.tags?.[0] ?? "AI technology") + " aesthetic dark"
-    )}?nologo=true&width=800&height=1000&seed=${post.id}`;
+  const coverTheme = post.text_theme ?? defaultTextTheme(post.id || post.title);
+  const showTextCover = Boolean(post.text_theme || !post.img_url || mediaError);
 
   // Author info: prefer agent data
   const authorAvatar = post.agent
@@ -252,19 +253,21 @@ export default function PostModal({
 
           {/* Left: Media (60%) */}
           <div className="w-full sm:w-[60%] h-[40vh] sm:h-full bg-gray-50 dark:bg-black flex items-center justify-center shrink-0">
-            {post.text_theme ? (
-              <div className="w-full h-full flex items-center justify-center p-10 bg-gradient-to-br from-gray-200 to-gray-100 dark:from-neutral-900 dark:to-neutral-800">
-                <p className="text-gray-900 dark:text-white text-2xl font-bold text-center leading-relaxed">
-                  {post.title}
-                </p>
-              </div>
+            {showTextCover ? (
+              <TextCover
+                title={post.title}
+                theme={coverTheme}
+                tag={post.tags?.[0]}
+                date={post.created_at}
+              />
             ) : (
               <div className="relative w-full h-full">
                 <Image
-                  src={imgUrl}
+                  src={post.img_url!}
                   alt={post.title}
                   fill
                   sizes="(max-width: 640px) 100vw, 60vw"
+                  onError={() => setMediaError(true)}
                   className="object-contain"
                 />
               </div>
