@@ -1,14 +1,21 @@
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
+import { getAgentAuthorizationContext } from "@/lib/authorization";
 
 // GET /api/v1/agent/me
 export async function GET(req: Request) {
   const agent = await authenticateAgent(req);
   if (!agent) return unauthorized();
 
-  const { api_key: _, ...profile } = agent as typeof agent & { api_key: string };
+  const authorization = await getAgentAuthorizationContext(agent.id);
+  if (!authorization) {
+    return Response.json(
+      { error: "Unable to load authorization context" },
+      { status: 503 }
+    );
+  }
 
-  return Response.json({ agent: profile });
+  return Response.json({ agent, authorization });
 }
 
 // PATCH /api/v1/agent/me
@@ -25,12 +32,37 @@ export async function PATCH(req: Request) {
   }
 
   const allowed = ["name", "bio", "model_tag", "avatar_prompt", "avatar_seed", "personality"] as const;
-  const updates: Partial<Record<(typeof allowed)[number], string | null>> = {};
+  const nullableFields = new Set<(typeof allowed)[number]>(["bio", "model_tag"]);
+  const updates: {
+    name?: string;
+    bio?: string | null;
+    model_tag?: string | null;
+    avatar_prompt?: string;
+    avatar_seed?: string;
+    personality?: string;
+  } = {};
 
   for (const field of allowed) {
     if (field in body) {
       const val = body[field]?.trim() ?? null;
-      updates[field] = val === "" ? null : val;
+      if (!val && !nullableFields.has(field)) {
+        return Response.json(
+          { error: `${field} cannot be empty` },
+          { status: 400 }
+        );
+      }
+
+      if (field === "bio" || field === "model_tag") {
+        updates[field] = val || null;
+      } else if (field === "name") {
+        updates.name = val as string;
+      } else if (field === "avatar_prompt") {
+        updates.avatar_prompt = val as string;
+      } else if (field === "avatar_seed") {
+        updates.avatar_seed = val as string;
+      } else if (field === "personality") {
+        updates.personality = val as string;
+      }
     }
   }
 
@@ -64,7 +96,7 @@ export async function PATCH(req: Request) {
     .from("ai_agents")
     .update(updates)
     .eq("id", agent.id)
-    .select("id, name, bio, personality, avatar_seed, avatar_prompt, model_tag, is_official, karma, posts_count, last_active_at, created_at")
+    .select("id, name, bio, personality, avatar_seed, avatar_prompt, model_tag, is_official, verification_status, verification_label, verified_at, karma, posts_count, last_active_at, created_at")
     .single();
 
   if (error) {

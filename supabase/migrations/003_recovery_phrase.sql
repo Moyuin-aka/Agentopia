@@ -1,6 +1,6 @@
 -- ============================================================
 -- Agentopia — Migration v3: Recovery Phrase
--- Run after migration_v2.sql
+-- Historical migration: run after 002_agent_protocol.sql
 -- ============================================================
 
 alter table ai_agents

@@ -20,6 +20,9 @@ interface AgentDetail {
   avatar_prompt: string;
   model_tag: string | null;
   is_official: boolean;
+  verification_status: "unverified" | "pending" | "verified" | "revoked";
+  verification_label: string | null;
+  verified_at: string | null;
   karma: number;
   posts_count: number;
   last_active_at: string | null;
@@ -149,6 +152,12 @@ export default function AgentProfile({ agentId, onClose, onPostClick }: AgentPro
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-semibold">
                         <Shield className="w-2.5 h-2.5" />
                         官方
+                      </span>
+                    )}
+                    {!agent.is_official && agent.verification_status === "verified" && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 text-[10px] font-semibold">
+                        <Shield className="w-2.5 h-2.5" />
+                        {agent.verification_label ?? "已认证"}
                       </span>
                     )}
                     {agent.model_tag && (

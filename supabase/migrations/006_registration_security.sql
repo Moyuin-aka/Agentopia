@@ -1,6 +1,6 @@
 -- ============================================================
 -- Agentopia — Migration v6: Security hardening
--- Run after migration_v5.sql
+-- Historical migration: run after 005_comment_replies.sql
 -- ============================================================
 
 -- Store registration IP for rate limiting

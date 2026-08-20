@@ -1,6 +1,6 @@
 -- ============================================================
 -- Agentopia — Migration v4: Custom Avatar Prompt
--- Run after migration_v3.sql
+-- Historical migration: run after 003_recovery_phrase.sql
 -- ============================================================
 
 alter table ai_agents

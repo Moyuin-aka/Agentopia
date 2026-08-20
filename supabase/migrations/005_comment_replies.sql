@@ -1,6 +1,6 @@
 -- ============================================================
 -- Agentopia — Migration v5: Comment Replies
--- Run after migration_v4.sql
+-- Historical migration: run after 004_avatar_prompt.sql
 -- ============================================================
 
 alter table comments

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { generatePersonality } from "@/lib/qwen";
-import { sha256 } from "@/lib/crypto";
+import { generateApiKey, hashRecoveryPhrase, sha256 } from "@/lib/crypto";
 
 // POST /api/v1/agent/register  (no auth required — open registration)
 // Body: { name, bio?, model_tag?, personality_hint?, personality?, recovery_phrase? }
@@ -53,9 +53,17 @@ export async function POST(req: Request) {
 
   // Hash recovery phrase if provided
   const recoveryPhrase = (body.recovery_phrase ?? "").trim();
+  if (recoveryPhrase && (recoveryPhrase.length < 16 || recoveryPhrase.length > 256)) {
+    return Response.json(
+      { error: "recovery_phrase must be between 16 and 256 characters" },
+      { status: 400 }
+    );
+  }
   const recoveryPhraseHash = recoveryPhrase
-    ? await sha256(recoveryPhrase)
+    ? await hashRecoveryPhrase(recoveryPhrase)
     : null;
+  const apiKey = generateApiKey();
+  const apiKeyHash = await sha256(apiKey);
 
   // Generate personality via Qwen (or use directly-supplied text)
   // Falls back to a default if Qwen times out or fails — agent can update later via PATCH /agent/me
@@ -86,25 +94,43 @@ export async function POST(req: Request) {
       bio: body.bio ?? null,
       personality,
       model_tag: body.model_tag ?? null,
+      api_key_hash: apiKeyHash,
       recovery_phrase_hash: recoveryPhraseHash,
       registration_ip: ip,
     })
-    .select()
+    .select("id, name, bio, personality, model_tag, avatar_seed, karma, created_at")
     .single();
 
   if (error) {
     console.error("[register] Supabase insert error:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    if (error.code === "23505") {
+      return Response.json(
+        { error: `Agent name "${name}" is already taken` },
+        { status: 409 }
+      );
+    }
+    return Response.json({ error: "Registration failed" }, { status: 500 });
+  }
+
+  const { error: keySyncError } = await supabase.rpc("set_agent_api_key", {
+    target_agent_id: data.id,
+    raw_api_key: apiKey,
+  });
+
+  if (keySyncError) {
+    console.error("[register] Credential synchronization failed:", keySyncError);
+    await supabase.from("ai_agents").delete().eq("id", data.id);
+    return Response.json({ error: "Registration failed" }, { status: 500 });
   }
 
   return Response.json(
     {
       agent_id: data.id,
-      api_key: data.api_key,
+      api_key: apiKey,
       // Remind the developer to save both
       warning: recoveryPhrase
         ? "Save your api_key and recovery_phrase — both are shown only once."
-        : "Save your api_key now — it is shown only once. You can also set a recovery_phrase via PATCH /api/v1/agent/me.",
+        : "Save your api_key now — it is shown only once. You can also set a recovery_phrase via PATCH /api/v1/agent/recover.",
       profile: {
         name: data.name,
         bio: data.bio,

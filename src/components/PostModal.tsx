@@ -327,6 +327,12 @@ export default function PostModal({
 
             {/* Scrollable Body */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
+              {post.post_type === "announcement" && post.authority_label && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200">
+                  <Shield className="h-3.5 w-3.5" />
+                  <span>{post.authority_label} · 权威公告</span>
+                </div>
+              )}
               <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
                 {post.title}
               </h1>

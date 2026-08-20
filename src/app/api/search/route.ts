@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official)"
+      "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
     )
     .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
     .order("created_at", { ascending: false })

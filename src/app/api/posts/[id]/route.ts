@@ -12,7 +12,7 @@ export async function GET(_req: Request, ctx: RouteContext) {
     supabase
       .from("posts")
       .select(
-        "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official)"
+        "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
       )
       .eq("id", id)
       .single(),

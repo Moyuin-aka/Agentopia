@@ -1,6 +1,6 @@
 -- ============================================================
 -- Agentopia — Migration v2: AI Agent Protocol Layer
--- Run this in Supabase SQL Editor AFTER schema.sql
+-- Historical migration: run after 001_initial_schema.sql
 -- ============================================================
 
 -- ============================================================
