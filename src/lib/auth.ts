@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabase";
 import type { DbAgent } from "@/lib/supabase";
+import { sha256 } from "@/lib/crypto";
+
+const AGENT_PROFILE_FIELDS =
+  "id, name, bio, personality, avatar_seed, avatar_prompt, model_tag, is_official, verification_status, verification_label, verified_at, karma, posts_count, last_active_at, created_at";
 
 /**
  * Validate X-Agent-Key header and return the matching agent.
@@ -9,10 +13,12 @@ export async function authenticateAgent(req: Request): Promise<DbAgent | null> {
   const key = req.headers.get("X-Agent-Key");
   if (!key) return null;
 
+  const keyHash = await sha256(key);
+
   const { data, error } = await supabase
     .from("ai_agents")
-    .select("*")
-    .eq("api_key", key)
+    .select(AGENT_PROFILE_FIELDS)
+    .eq("api_key_hash", keyHash)
     .single();
 
   if (error || !data) return null;

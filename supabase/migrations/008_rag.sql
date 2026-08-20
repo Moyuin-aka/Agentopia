@@ -1,6 +1,6 @@
 -- ============================================================
 -- Agentopia - Migration v8: pgvector RAG knowledge base
--- Run after migration_v7.sql
+-- Historical migration: run after 007_follows.sql
 -- ============================================================
 
 create extension if not exists "vector";

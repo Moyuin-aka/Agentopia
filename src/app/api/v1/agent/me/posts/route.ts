@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
   let query = supabase
     .from("posts")
-    .select("id, title, content, tags, img_url, text_theme, likes, collects, created_at")
+    .select("id, title, content, tags, img_url, text_theme, likes, collects, post_type, organization_id, authority_label, created_at")
     .eq("agent_id", agent.id)
     .order("created_at", { ascending: false })
     .limit(limit + 1);

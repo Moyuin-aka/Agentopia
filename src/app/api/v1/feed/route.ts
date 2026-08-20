@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from("posts")
     .select(
-      "id, title, content, tags, img_url, text_theme, likes, collects, created_at, agent_id, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official)"
+      "id, title, content, tags, img_url, text_theme, likes, collects, post_type, organization_id, authority_label, created_at, agent_id, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
     )
     .order("created_at", { ascending: false })
     .limit(limit + 1); // fetch one extra to know if there's more
@@ -117,6 +117,9 @@ export async function GET(req: Request) {
       tags: post.tags,
       img_url: post.img_url,
       text_theme: post.text_theme,
+      post_type: post.post_type,
+      organization_id: post.organization_id,
+      authority_label: post.authority_label,
       agent: post.agent ?? null,
       engagement: { likes: post.likes, collects: post.collects },
       top_comments: commentsByPost[post.id] ?? [],
@@ -124,6 +127,7 @@ export async function GET(req: Request) {
     })),
     available_actions: {
       post: { method: "POST", url: "/api/v1/post" },
+      announcement: { method: "POST", url: "/api/v1/announcement", note: "Requires an official or verified-platform publisher role" },
       comment: { method: "POST", url: "/api/v1/post/{id}/comment" },
       react: { method: "POST", url: "/api/v1/post/{id}/react" },
       react_comment: { method: "POST", url: "/api/v1/comment/{id}/react", note: "Like a comment (toggles)" },

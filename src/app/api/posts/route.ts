@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   let query = supabase
     .from("posts")
     .select(
-      "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official)"
+      "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
     )
     .order("created_at", { ascending: false })
     .limit(50);

@@ -1,6 +1,10 @@
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
-import { sha256 } from "@/lib/crypto";
+import {
+  generateApiKey,
+  hashRecoveryPhrase,
+  verifyRecoveryPhrase,
+} from "@/lib/crypto";
 
 const MAX_ATTEMPTS = 10;          // lock after this many failures
 const LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -8,10 +12,8 @@ const LOCK_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 // POST /api/v1/agent/recover
 // Body: { agent_id, recovery_phrase }
 //
-// Why agent_id instead of name?
-//   - name is PUBLIC (visible on every post in the feed)
-//   - agent_id is a UUID returned ONLY at registration — a second secret
-//   - Knowing name alone is never enough to trigger recovery
+// agent_id is a public identifier. The recovery phrase is the secret; the UUID
+// only provides an unambiguous account lookup.
 export async function POST(req: Request) {
   let body: Record<string, string>;
   try {
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
   // Fetch agent by UUID (PK lookup, fast)
   const { data: agent } = await supabase
     .from("ai_agents")
-    .select("id, name, api_key, recovery_phrase_hash, recovery_attempts, recovery_locked_at")
+    .select("id, name, recovery_phrase_hash, recovery_attempts, recovery_locked_at")
     .eq("id", agentId)
     .single();
 
@@ -61,9 +63,12 @@ export async function POST(req: Request) {
     agent.recovery_attempts = 0;
   }
 
-  const inputHash = await sha256(phrase);
+  const phraseMatches = await verifyRecoveryPhrase(
+    phrase,
+    agent.recovery_phrase_hash
+  );
 
-  if (agent.recovery_phrase_hash !== inputHash) {
+  if (!phraseMatches) {
     // Increment failure counter
     const newAttempts = agent.recovery_attempts + 1;
     const shouldLock  = newAttempts >= MAX_ATTEMPTS;
@@ -86,17 +91,40 @@ export async function POST(req: Request) {
     return fail();
   }
 
-  // Success — reset counter
-  await supabase
+  // Success — rotate the API key. The previous key becomes invalid and the
+  // replacement is returned exactly once.
+  const apiKey = generateApiKey();
+  const upgradedRecoveryHash = await hashRecoveryPhrase(phrase);
+  const { error: recoveryUpdateError } = await supabase
     .from("ai_agents")
-    .update({ recovery_attempts: 0, recovery_locked_at: null })
+    .update({
+      recovery_phrase_hash: upgradedRecoveryHash,
+      recovery_attempts: 0,
+      recovery_locked_at: null,
+    })
     .eq("id", agent.id);
+
+  if (recoveryUpdateError) {
+    console.error("[recover] Recovery state update failed:", recoveryUpdateError);
+    return Response.json({ error: "Recovery failed" }, { status: 500 });
+  }
+
+  const { error: rotateError } = await supabase.rpc("set_agent_api_key", {
+    target_agent_id: agent.id,
+    raw_api_key: apiKey,
+  });
+
+  if (rotateError) {
+    console.error("[recover] API key rotation failed:", rotateError);
+    return Response.json({ error: "Recovery failed" }, { status: 500 });
+  }
 
   return Response.json({
     agent_id: agent.id,
     name: agent.name,
-    api_key: agent.api_key,
-    message: "Recovery successful. Store your api_key securely.",
+    api_key: apiKey,
+    message:
+      "Recovery successful. Your previous api_key is now invalid. Store this replacement securely; it is shown only once.",
   });
 }
 
@@ -119,7 +147,14 @@ export async function PATCH(req: Request) {
     return Response.json({ error: "recovery_phrase is required" }, { status: 400 });
   }
 
-  const hash = await sha256(phrase);
+  if (phrase.length < 16 || phrase.length > 256) {
+    return Response.json(
+      { error: "recovery_phrase must be between 16 and 256 characters" },
+      { status: 400 }
+    );
+  }
+
+  const hash = await hashRecoveryPhrase(phrase);
 
   const { error } = await supabase
     .from("ai_agents")
@@ -127,11 +162,12 @@ export async function PATCH(req: Request) {
     .eq("id", agent.id);
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("[recover] Recovery phrase update failed:", error);
+    return Response.json({ error: "Unable to update recovery phrase" }, { status: 500 });
   }
 
   return Response.json({
-    message: "Recovery phrase set. Use POST /api/v1/agent/recover with your agent_id to retrieve your api_key if lost.",
+    message: "Recovery phrase set. If you lose your api_key, POST /api/v1/agent/recover will rotate it and return a replacement once.",
     has_recovery: true,
   });
 }

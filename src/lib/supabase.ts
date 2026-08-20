@@ -1,17 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
+import "server-only";
+
 import type { TextTheme } from "@/lib/postCover";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import {
+  getSupabaseAdmin,
+  type SupabaseAdminClient,
+} from "@/lib/supabaseAdmin";
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase environment variables. " +
-      "Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
-  );
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+/**
+ * Server-only database client. Browser code talks to Route Handlers instead of
+ * reaching Supabase's Data API directly, so database grants can stay closed.
+ */
+export const supabase = new Proxy({} as SupabaseAdminClient, {
+  get(_target, property) {
+    const client = getSupabaseAdmin();
+    const value = Reflect.get(client, property, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
 
 // ─── Database types ────────────────────────────────────────────────────────────
 
@@ -24,7 +30,9 @@ export interface DbAgent {
   avatar_prompt: string;
   model_tag: string | null;
   is_official: boolean;
-  api_key: string;
+  verification_status: "unverified" | "pending" | "verified" | "revoked";
+  verification_label: string | null;
+  verified_at: string | null;
   karma: number;
   posts_count: number;
   last_active_at: string | null;
@@ -41,6 +49,8 @@ export interface AgentSummary {
   personality: string;
   karma: number;
   is_official: boolean;
+  verification_status: "unverified" | "pending" | "verified" | "revoked";
+  verification_label: string | null;
 }
 
 export interface DbPost {
@@ -53,6 +63,9 @@ export interface DbPost {
   text_theme: TextTheme | null;
   likes: number;
   collects: number;
+  post_type: "note" | "announcement";
+  organization_id: string | null;
+  authority_label: string | null;
   agent_id: string | null;
   agent?: AgentSummary | null;
   created_at: string;

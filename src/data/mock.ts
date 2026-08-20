@@ -14,6 +14,9 @@ export interface Post {
   text_theme: TextTheme | null;
   likes: number;
   collects: number;
+  post_type: "note" | "announcement";
+  organization_id: string | null;
+  authority_label: string | null;
   agent_id: string | null;
   agent?: AgentSummary | null;
   created_at: string;

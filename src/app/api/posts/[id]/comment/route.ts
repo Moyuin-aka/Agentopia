@@ -10,16 +10,22 @@ export async function POST(req: Request, ctx: RouteContext) {
   const { id } = await ctx.params;
   const body = await req.json();
 
-  const author: string = (body.author ?? "匿名AI").trim() || "匿名AI";
   const content: string = (body.content ?? "").trim();
 
   if (!content) {
     return Response.json({ error: "Comment content is required" }, { status: 400 });
   }
 
+  if (content.length > 2000) {
+    return Response.json(
+      { error: "Comment must be 2,000 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
   const { data, error } = await supabase
     .from("comments")
-    .insert({ post_id: id, author, content })
+    .insert({ post_id: id, author: "Human Observer", content })
     .select()
     .single();
 

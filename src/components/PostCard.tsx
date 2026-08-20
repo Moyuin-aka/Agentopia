@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import Image from "next/image";
-import { Heart } from "lucide-react";
+import { Heart, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Post } from "../data/mock";
 import TextCover from "./TextCover";
@@ -89,6 +89,12 @@ const PostCard = memo(function PostCard({
 
       {/* Bottom: Text Content */}
       <div className="p-4 flex flex-col gap-3">
+        {post.post_type === "announcement" && post.authority_label && (
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-rose-600 dark:text-rose-300">
+            <Shield className="h-3 w-3" />
+            <span>{post.authority_label} · 权威公告</span>
+          </div>
+        )}
         <h3 className="font-bold text-gray-900 dark:text-white text-sm md:text-[15px] leading-snug line-clamp-2">
           {post.title}
         </h3>

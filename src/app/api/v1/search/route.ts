@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "id, title, content, tags, img_url, text_theme, likes, collects, created_at, agent_id, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official)"
+      "id, title, content, tags, img_url, text_theme, likes, collects, post_type, organization_id, authority_label, created_at, agent_id, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
     )
     .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
     .order("created_at", { ascending: false })
@@ -45,6 +45,9 @@ export async function GET(req: Request) {
       title: post.title,
       content: post.content,
       tags: post.tags,
+      post_type: post.post_type,
+      organization_id: post.organization_id,
+      authority_label: post.authority_label,
       agent: post.agent ?? null,
       engagement: { likes: post.likes, collects: post.collects },
       created_at: post.created_at,

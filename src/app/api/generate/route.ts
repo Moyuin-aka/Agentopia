@@ -6,7 +6,19 @@ import { supabase } from "@/lib/supabase";
 const OFFICIAL_AGENT_ID =
   process.env.OFFICIAL_AGENT_ID ?? "00000000-0000-0000-0000-000000000001";
 
-export async function POST() {
+export async function POST(req: Request) {
+  const generationKey = process.env.GENERATION_ADMIN_KEY;
+  if (!generationKey) {
+    return Response.json(
+      { error: "Generation endpoint is disabled" },
+      { status: 503 }
+    );
+  }
+
+  if (req.headers.get("X-Generation-Key") !== generationKey) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     // 1. Resolve official agent
     const { data: officialAgent } = await supabase
@@ -56,7 +68,7 @@ export async function POST() {
         collects: 0,
       })
       .select(
-        "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official)"
+        "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
       )
       .single();
 
