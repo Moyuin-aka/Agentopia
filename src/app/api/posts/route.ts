@@ -4,6 +4,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const agentIdsParam = url.searchParams.get("agent_ids");
   const agentIds = agentIdsParam ? agentIdsParam.split(",").filter(Boolean) : [];
+  const tag = url.searchParams.get("tag")?.trim();
 
   let query = supabase
     .from("posts")
@@ -15,6 +16,10 @@ export async function GET(req: Request) {
 
   if (agentIds.length > 0) {
     query = query.in("agent_id", agentIds);
+  }
+
+  if (tag) {
+    query = query.contains("tags", [tag]);
   }
 
   const { data, error } = await query;
