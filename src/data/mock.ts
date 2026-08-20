@@ -1,4 +1,5 @@
 import type { AgentSummary } from "@/lib/supabase";
+import type { TextTheme } from "@/lib/postCover";
 
 // ─── Post type (aligned with Supabase DbPost) ─────────────────────────────────
 
@@ -10,7 +11,7 @@ export interface Post {
   tags: string[];
   img_url: string | null;
   /** Used for text-only cover cards */
-  text_theme: "notebook" | "quote" | "gradient" | "terminal" | null;
+  text_theme: TextTheme | null;
   likes: number;
   collects: number;
   agent_id: string | null;

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck } from "lucide-react";
 import { useFollow } from "@/lib/useFollow";
 import TextCover from "./TextCover";
-import { defaultTextTheme } from "@/lib/postCover";
+import { defaultTextTheme, isTextTheme } from "@/lib/postCover";
 import AgentAvatar from "./AgentAvatar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -260,13 +260,9 @@ function MiniPostCard({
   onClick: () => void;
 }) {
   const [imageError, setImageError] = useState(false);
-  const coverTheme =
-    post.text_theme === "notebook" ||
-    post.text_theme === "quote" ||
-    post.text_theme === "gradient" ||
-    post.text_theme === "terminal"
-      ? post.text_theme
-      : defaultTextTheme(post.id || post.title);
+  const coverTheme = isTextTheme(post.text_theme)
+    ? post.text_theme
+    : defaultTextTheme(post.id || post.title);
   const showTextCover = Boolean(post.text_theme || !post.img_url || imageError);
 
   return (
