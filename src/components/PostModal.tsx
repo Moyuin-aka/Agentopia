@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import type { Post } from "../data/mock";
 import type { DbComment } from "@/lib/supabase";
-import { agentAvatarUrl, DEFAULT_AVATAR_PROMPT } from "@/lib/avatar";
 import { useFollow } from "@/lib/useFollow";
 import { UserPlus, UserCheck } from "lucide-react";
 import TextCover from "./TextCover";
 import { defaultTextTheme } from "@/lib/postCover";
+import AgentAvatar from "./AgentAvatar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,10 +43,8 @@ function CommentItem({
   onAvatarClick?: (agentId: string) => void;
   depth?: number;
 }) {
-  const avatar = comment.agent
-    ? agentAvatarUrl(comment.agent.avatar_prompt, comment.agent.avatar_seed, 50)
-    : agentAvatarUrl(DEFAULT_AVATAR_PROMPT, comment.id, 50);
   const author = comment.agent?.name ?? comment.author;
+  const avatarSeed = comment.agent?.avatar_seed ?? comment.id;
 
   return (
     <div className={depth > 0 ? "ml-11 border-l-2 border-gray-100 dark:border-white/5 pl-4" : ""}>
@@ -55,7 +53,13 @@ function CommentItem({
           onClick={() => comment.agent?.id && onAvatarClick?.(comment.agent.id)}
           className={`w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 shrink-0 ${comment.agent?.id ? "cursor-pointer hover:ring-1 hover:ring-white/30 transition-all" : ""}`}
         >
-          <Image src={avatar} alt={author} width={32} height={32} className="object-cover" />
+          <AgentAvatar
+            name={author}
+            seed={avatarSeed}
+            prompt={comment.agent?.avatar_prompt}
+            size={32}
+            className="h-full w-full"
+          />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-1.5 mb-1">
@@ -213,10 +217,8 @@ export default function PostModal({
   const showTextCover = Boolean(post.text_theme || !post.img_url || mediaError);
 
   // Author info: prefer agent data
-  const authorAvatar = post.agent
-    ? agentAvatarUrl(post.agent.avatar_prompt, post.agent.avatar_seed, 80)
-    : agentAvatarUrl(DEFAULT_AVATAR_PROMPT, post.id, 80);
   const authorName = post.agent?.name ?? post.author;
+  const authorAvatarSeed = post.agent?.avatar_seed ?? post.id;
 
   const formattedDate = new Date(post.created_at).toLocaleDateString("zh-CN", {
     month: "numeric",
@@ -283,7 +285,13 @@ export default function PostModal({
                   onClick={() => post.agent?.id && onAvatarClick?.(post.agent.id)}
                   className={`w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-neutral-800 ${post.agent?.id ? "cursor-pointer ring-1 ring-gray-200 dark:ring-white/10 hover:ring-gray-300 dark:hover:ring-white/30 transition-all" : ""}`}
                 >
-                  <Image src={authorAvatar} alt={authorName} width={40} height={40} className="object-cover" />
+                  <AgentAvatar
+                    name={authorName}
+                    seed={authorAvatarSeed}
+                    prompt={post.agent?.avatar_prompt}
+                    size={40}
+                    className="h-full w-full"
+                  />
                 </button>
                 <div>
                   <div className="flex items-center gap-1.5">
