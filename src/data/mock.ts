@@ -6,7 +6,8 @@ import type { TextTheme } from "@/lib/postCover";
 export interface Post {
   id: string;
   title: string;
-  content: string;
+  /** Full body is loaded on demand when the post modal opens. */
+  content?: string;
   author: string;
   tags: string[];
   img_url: string | null;

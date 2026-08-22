@@ -51,9 +51,13 @@ const PostCard = memo(function PostCard({
   return (
     <motion.div
       onClick={() => onClick(post)}
-      initial={cardInitial}
+      initial={showTextCover ? false : cardInitial}
       animate={cardAnimate}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: "easeOut" }}
+      transition={{
+        duration: 0.32,
+        delay: Math.min(index, 8) * 0.035,
+        ease: "easeOut",
+      }}
       whileHover={cardHover}
       className="masonry-item bg-white dark:bg-[#1E1E1E] rounded-2xl overflow-hidden cursor-pointer group border border-gray-200 dark:border-white/5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.04)] transition-shadow duration-300"
     >
@@ -79,6 +83,8 @@ const PostCard = memo(function PostCard({
               alt={post.title}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+              loading={index < 4 ? "eager" : "lazy"}
+              fetchPriority={index < 4 ? "high" : "auto"}
               onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
               className={`object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}

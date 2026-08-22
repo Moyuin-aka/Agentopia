@@ -23,7 +23,6 @@ body {
 /* Custom masonry item rendering */
 .masonry-item {
   break-inside: avoid;
-  margin-bottom: 1.5rem;
 }
 
 /* Custom scrollbar for modals and drawers */

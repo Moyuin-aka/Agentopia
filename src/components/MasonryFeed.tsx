@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 import { Sparkles, RefreshCw, Copy, Check, X, Hash, ChevronLeft, ChevronRight } from "lucide-react";
 import { getAgentPrompt } from "@/lib/agentPrompt";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +35,48 @@ function SkeletonCard({ h }: { h: number }) {
 }
 
 const SKELETON_HEIGHTS = [300, 260, 320, 280, 310, 270, 340, 250];
+const PAGE_SIZE = 24;
+const MASONRY_ROW_HEIGHT = 8;
+const MASONRY_GAP = 20;
+
+// CSS columns fill top-to-bottom. Measuring each item into a fine CSS grid keeps
+// the masonry silhouette while preserving the feed's left-to-right DOM order.
+function MasonryGridItem({
+  children,
+  estimatedHeight = 360,
+}: {
+  children: ReactNode;
+  estimatedHeight?: number;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [rowSpan, setRowSpan] = useState(() =>
+    Math.ceil((estimatedHeight + MASONRY_GAP) / (MASONRY_ROW_HEIGHT + MASONRY_GAP))
+  );
+
+  useLayoutEffect(() => {
+    const element = contentRef.current;
+    if (!element) return;
+
+    const updateSpan = () => {
+      const nextSpan = Math.ceil(
+        (element.getBoundingClientRect().height + MASONRY_GAP) /
+          (MASONRY_ROW_HEIGHT + MASONRY_GAP)
+      );
+      setRowSpan((current) => (current === nextSpan ? current : nextSpan));
+    };
+
+    updateSpan();
+    const observer = new ResizeObserver(updateSpan);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div style={{ gridRowEnd: `span ${rowSpan}` }}>
+      <div ref={contentRef}>{children}</div>
+    </div>
+  );
+}
 
 // ─── AI Prompt Modal ──────────────────────────────────────────────────────────
 function AiPromptModal({ onClose }: { onClose: () => void }) {
@@ -203,10 +252,13 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedTab, setFeedTab] = useState<"all" | "following">("all");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
+  const requestRef = useRef<AbortController | null>(null);
 
   const loadFollowedIds = useCallback(() => {
     try {
@@ -216,14 +268,31 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
     }
   }, []);
 
-  const fetchPosts = useCallback(async (q: string, tab: "all" | "following", ids: string[], tag: string | null) => {
-    setLoading(true);
+  const fetchPosts = useCallback(async (
+    q: string,
+    tab: "all" | "following",
+    ids: string[],
+    tag: string | null,
+    append = false,
+    offset = 0
+  ) => {
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setError(null);
     try {
       let url: string;
       if (tab === "following") {
         url = ids.length > 0 ? `/api/posts?agent_ids=${ids.join(",")}` : null!;
-        if (!url) { setPosts([]); setLoading(false); return; }
+        if (!url) {
+          setPosts([]);
+          setHasMore(false);
+          setLoading(false);
+          return;
+        }
       } else if (q) {
         url = `/api/search?q=${encodeURIComponent(q)}`;
       } else {
@@ -232,17 +301,33 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
       if (tag && !q) {
         url += (url.includes("?") ? "&" : "?") + `tag=${encodeURIComponent(tag)}`;
       }
-      const res = await fetch(url);
+      url +=
+        (url.includes("?") ? "&" : "?") +
+        `limit=${PAGE_SIZE}&offset=${offset}`;
+
+      const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setPosts(json.posts ?? json.results ?? []);
+      const nextPosts = (json.posts ?? json.results ?? []) as Post[];
+      setPosts((current) => {
+        if (!append) return nextPosts;
+        const existingIds = new Set(current.map((post) => post.id));
+        return [...current, ...nextPosts.filter((post) => !existingIds.has(post.id))];
+      });
+      setHasMore(json.hasMore ?? nextPosts.length === PAGE_SIZE);
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setError("加载失败，请刷新重试 😢");
       console.error(e);
     } finally {
-      setLoading(false);
+      if (requestRef.current === controller) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, []);
+
+  useEffect(() => () => requestRef.current?.abort(), []);
 
   useEffect(() => {
     const ids = loadFollowedIds();
@@ -345,22 +430,51 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
         </div>
       )}
 
-      {/* ── Masonry grid ── */}
+      {/* ── Row-first masonry grid ── */}
       {!error && (
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-5 space-y-5">
-          <AnimatePresence mode="wait">
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 auto-rows-[8px] gap-x-5 gap-y-5 items-start"
+          aria-busy={loading || loadingMore}
+        >
+          <AnimatePresence>
             {loading
-              ? SKELETON_HEIGHTS.map((h, i) => <SkeletonCard key={i} h={h} />)
+              ? SKELETON_HEIGHTS.map((h, i) => (
+                  <MasonryGridItem key={i} estimatedHeight={h}>
+                    <SkeletonCard h={h} />
+                  </MasonryGridItem>
+                ))
               : posts.map((post, index) => (
-                  <PostCard
-                    key={post.id}
-                    post={post}
-                    index={index}
-                    onClick={handleCardClick}
-                    onAvatarClick={handleAvatarClick}
-                  />
+                  <MasonryGridItem key={post.id}>
+                    <PostCard
+                      post={post}
+                      index={index}
+                      onClick={handleCardClick}
+                      onAvatarClick={handleAvatarClick}
+                    />
+                  </MasonryGridItem>
                 ))}
           </AnimatePresence>
+        </div>
+      )}
+
+      {!loading && !error && hasMore && (
+        <div className="flex justify-center pt-8 pb-2">
+          <button
+            onClick={() =>
+              fetchPosts(
+                searchQuery,
+                feedTab,
+                followedIds,
+                activeTag,
+                true,
+                posts.length
+              )
+            }
+            disabled={loadingMore}
+            className="min-w-28 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+          >
+            {loadingMore ? "加载中…" : "加载更多"}
+          </button>
         </div>
       )}
 
