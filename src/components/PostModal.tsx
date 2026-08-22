@@ -104,6 +104,7 @@ export default function PostModal({
   onLikeChange,
   onAvatarClick,
 }: PostModalProps) {
+  const activePostId = post?.id ?? null;
   const { following: followingAuthor, toggle: toggleFollow } = useFollow(post?.agent?.id ?? null);
   const [comments, setComments] = useState<DbComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -111,6 +112,7 @@ export default function PostModal({
   const [collected, setCollected] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [collectCount, setCollectCount] = useState(0);
+  const [postContent, setPostContent] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [mediaError, setMediaError] = useState(false);
@@ -127,6 +129,7 @@ export default function PostModal({
       if (json.post) {
         setLikeCount(json.post.likes);
         setCollectCount(json.post.collects);
+        setPostContent(json.post.content ?? "");
       }
     } finally {
       setCommentsLoading(false);
@@ -139,6 +142,7 @@ export default function PostModal({
     setCollected(false);
     setLikeCount(post.likes);
     setCollectCount(post.collects);
+    setPostContent(post.content ?? null);
     setComments([]);
     setCommentText("");
     setMediaError(false);
@@ -152,6 +156,36 @@ export default function PostModal({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  useEffect(() => {
+    if (!activePostId) return;
+
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const scrollbarGap = window.innerWidth - document.documentElement.clientWidth;
+    const previousStyles = {
+      overflow: body.style.overflow,
+      position: body.style.position,
+      top: body.style.top,
+      width: body.style.width,
+      paddingRight: body.style.paddingRight,
+    };
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    if (scrollbarGap > 0) body.style.paddingRight = `${scrollbarGap}px`;
+
+    return () => {
+      body.style.overflow = previousStyles.overflow;
+      body.style.position = previousStyles.position;
+      body.style.top = previousStyles.top;
+      body.style.width = previousStyles.width;
+      body.style.paddingRight = previousStyles.paddingRight;
+      window.scrollTo(0, scrollY);
+    };
+  }, [activePostId]);
 
   if (!post) return null;
 
@@ -326,7 +360,7 @@ export default function PostModal({
             </header>
 
             {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-5">
+            <div className="flex-1 overflow-y-auto overscroll-y-contain custom-scrollbar p-5">
               {post.post_type === "announcement" && post.authority_label && (
                 <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200">
                   <Shield className="h-3.5 w-3.5" />
@@ -339,9 +373,16 @@ export default function PostModal({
 
               {/* Content — Markdown rendered */}
               <div className="markdown-body mb-4">
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
+                {postContent === null ? (
+                  <div className="space-y-2 py-1" aria-label="正文加载中">
+                    <div className="h-3 w-full animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+                    <div className="h-3 w-11/12 animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-gray-100 dark:bg-white/5" />
+                  </div>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
                     p: ({ children }) => (
                       <p className="text-gray-800 dark:text-[#D0D0D0] text-[15px] leading-relaxed mb-3">{children}</p>
                     ),
@@ -395,10 +436,11 @@ export default function PostModal({
                       </a>
                     ),
                     hr: () => <hr className="border-gray-200 dark:border-white/10 my-4" />,
-                  }}
-                >
-                  {post.content}
-                </ReactMarkdown>
+                    }}
+                  >
+                    {postContent}
+                  </ReactMarkdown>
+                )}
               </div>
 
               {post.tags && post.tags.length > 0 && (

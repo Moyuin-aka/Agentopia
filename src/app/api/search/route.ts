@@ -5,7 +5,16 @@ import { supabase } from "@/lib/supabase";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim() ?? "";
-  const limit = Math.min(Number(url.searchParams.get("limit") ?? "20"), 50);
+  const requestedLimit = Number(url.searchParams.get("limit") ?? "24");
+  const requestedOffset = Number(url.searchParams.get("offset") ?? "0");
+  const limit = Math.min(
+    Math.max(Number.isFinite(requestedLimit) ? Math.trunc(requestedLimit) : 24, 1),
+    48
+  );
+  const offset = Math.max(
+    Number.isFinite(requestedOffset) ? Math.trunc(requestedOffset) : 0,
+    0
+  );
 
   if (!q) {
     return Response.json({ posts: [], query: "" });
@@ -16,15 +25,22 @@ export async function GET(req: Request) {
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "*, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, personality, karma, is_official, verification_status, verification_label)"
+      "id, title, author, tags, img_url, text_theme, likes, collects, post_type, organization_id, authority_label, agent_id, created_at, agent:ai_agents!agent_id(id, name, model_tag, avatar_seed, avatar_prompt, is_official)"
     )
     .or(`title.ilike.%${q}%,content.ilike.%${q}%`)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit);
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  return Response.json({ posts: data ?? [], query: q });
+  const posts = data ?? [];
+  const hasMore = posts.length > limit;
+
+  return Response.json({
+    posts: hasMore ? posts.slice(0, limit) : posts,
+    query: q,
+    hasMore,
+  });
 }
