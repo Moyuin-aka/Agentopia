@@ -10,7 +10,7 @@ const AGENT_PROFILE_FIELDS =
  * Returns null if the key is missing or invalid.
  */
 export async function authenticateAgent(req: Request): Promise<DbAgent | null> {
-  const key = req.headers.get("X-Agent-Key");
+  const key = getAgentKey(req);
   if (!key) return null;
 
   const keyHash = await sha256(key);
@@ -23,6 +23,16 @@ export async function authenticateAgent(req: Request): Promise<DbAgent | null> {
 
   if (error || !data) return null;
   return data as DbAgent;
+}
+
+/** Accept the native Agentopia header and the Bearer form used by MCP clients. */
+export function getAgentKey(req: Request): string | null {
+  const nativeKey = req.headers.get("X-Agent-Key")?.trim();
+  if (nativeKey) return nativeKey;
+
+  const authorization = req.headers.get("Authorization")?.trim() ?? "";
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
 }
 
 /** Standard 401 response for missing/invalid API key */

@@ -154,6 +154,25 @@ create table public.knowledge_chunks (
   unique (source_type, source_id, chunk_index)
 );
 
+create table public.notification_events (
+  id                  uuid primary key default gen_random_uuid(),
+  event_type          text not null check (
+    event_type in (
+      'post.published', 'system.announcement', 'post.liked',
+      'post.collected', 'comment.created', 'comment.replied',
+      'comment.liked', 'agent.followed'
+    )
+  ),
+  actor_agent_id      uuid references public.ai_agents(id) on delete set null,
+  recipient_agent_id  uuid references public.ai_agents(id) on delete cascade,
+  post_id             uuid references public.posts(id) on delete cascade,
+  comment_id          uuid references public.comments(id) on delete cascade,
+  payload             jsonb not null default '{}'::jsonb,
+  read_at             timestamptz,
+  acknowledged_at     timestamptz,
+  created_at          timestamptz not null default now()
+);
+
 create index idx_agents_name on public.ai_agents(name);
 create index idx_agents_registration_ip
   on public.ai_agents(registration_ip, created_at);
@@ -182,6 +201,14 @@ create index knowledge_chunks_source_idx
   on public.knowledge_chunks(source_type, source_id);
 create index knowledge_chunks_embedding_hnsw_idx
   on public.knowledge_chunks using hnsw (embedding vector_cosine_ops);
+create index notification_events_recipient_created_idx
+  on public.notification_events(recipient_agent_id, created_at desc);
+create index notification_events_unacknowledged_idx
+  on public.notification_events(recipient_agent_id, created_at desc)
+  where acknowledged_at is null;
+create index notification_events_public_created_idx
+  on public.notification_events(created_at desc)
+  where recipient_agent_id is null;
 
 create or replace function public.increment_counter(
   row_id uuid,
@@ -277,6 +304,185 @@ as $$
   limit least(greatest(match_count, 1), 20);
 $$;
 
+create or replace function public.emit_post_notifications()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  emitted_type text;
+begin
+  emitted_type := case
+    when new.post_type = 'announcement' then 'system.announcement'
+    else 'post.published'
+  end;
+
+  insert into notification_events (event_type, actor_agent_id, post_id, payload)
+  values (
+    emitted_type,
+    new.agent_id,
+    new.id,
+    jsonb_build_object('title', new.title, 'post_type', new.post_type)
+  );
+
+  if new.agent_id is not null then
+    insert into notification_events (
+      event_type, actor_agent_id, recipient_agent_id, post_id, payload
+    )
+    select
+      emitted_type,
+      new.agent_id,
+      f.follower_id,
+      new.id,
+      jsonb_build_object('title', new.title, 'post_type', new.post_type)
+    from follows f
+    where f.following_id = new.agent_id
+      and f.follower_id <> new.agent_id;
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.emit_comment_notifications()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  post_owner uuid;
+  parent_owner uuid;
+  post_title text;
+begin
+  select p.agent_id, p.title into post_owner, post_title
+  from posts p where p.id = new.post_id;
+
+  if new.parent_id is not null then
+    select c.agent_id into parent_owner
+    from comments c where c.id = new.parent_id;
+
+    if parent_owner is not null and parent_owner is distinct from new.agent_id then
+      insert into notification_events (
+        event_type, actor_agent_id, recipient_agent_id, post_id, comment_id, payload
+      ) values (
+        'comment.replied', new.agent_id, parent_owner, new.post_id, new.id,
+        jsonb_build_object(
+          'post_title', post_title,
+          'parent_comment_id', new.parent_id,
+          'preview', left(new.content, 240)
+        )
+      );
+    end if;
+  end if;
+
+  if post_owner is not null
+     and post_owner is distinct from new.agent_id
+     and post_owner is distinct from parent_owner then
+    insert into notification_events (
+      event_type, actor_agent_id, recipient_agent_id, post_id, comment_id, payload
+    ) values (
+      'comment.created', new.agent_id, post_owner, new.post_id, new.id,
+      jsonb_build_object(
+        'post_title', post_title,
+        'parent_comment_id', new.parent_id,
+        'preview', left(new.content, 240)
+      )
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.emit_post_reaction_notification()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  actor_id uuid;
+  post_owner uuid;
+  post_title text;
+begin
+  if new.session_id !~ '^agent:[0-9a-fA-F-]{36}$' then return new; end if;
+
+  actor_id := substring(new.session_id from 7)::uuid;
+  select p.agent_id, p.title into post_owner, post_title
+  from posts p where p.id = new.post_id;
+
+  if post_owner is not null and post_owner <> actor_id then
+    insert into notification_events (
+      event_type, actor_agent_id, recipient_agent_id, post_id, payload
+    ) values (
+      case when new.type = 'collect' then 'post.collected' else 'post.liked' end,
+      actor_id, post_owner, new.post_id,
+      jsonb_build_object('post_title', post_title)
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.emit_comment_reaction_notification()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+declare
+  actor_id uuid;
+  comment_owner uuid;
+  parent_post_id uuid;
+begin
+  if new.session_id !~ '^agent:[0-9a-fA-F-]{36}$' then return new; end if;
+
+  actor_id := substring(new.session_id from 7)::uuid;
+  select c.agent_id, c.post_id into comment_owner, parent_post_id
+  from comments c where c.id = new.comment_id;
+
+  if comment_owner is not null and comment_owner <> actor_id then
+    insert into notification_events (
+      event_type, actor_agent_id, recipient_agent_id, post_id, comment_id
+    ) values (
+      'comment.liked', actor_id, comment_owner, parent_post_id, new.comment_id
+    );
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.emit_follow_notification()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  insert into notification_events (
+    event_type, actor_agent_id, recipient_agent_id, payload
+  ) values (
+    'agent.followed', new.follower_id, new.following_id, '{}'::jsonb
+  );
+  return new;
+end;
+$$;
+
+create trigger posts_emit_notifications
+after insert on public.posts
+for each row execute function public.emit_post_notifications();
+create trigger comments_emit_notifications
+after insert on public.comments
+for each row execute function public.emit_comment_notifications();
+create trigger post_reactions_emit_notification
+after insert on public.post_reactions
+for each row execute function public.emit_post_reaction_notification();
+create trigger comment_reactions_emit_notification
+after insert on public.comment_reactions
+for each row execute function public.emit_comment_reaction_notification();
+create trigger follows_emit_notification
+after insert on public.follows
+for each row execute function public.emit_follow_notification();
+
 alter table public.ai_agents enable row level security;
 alter table public.organizations enable row level security;
 alter table public.agent_role_bindings enable row level security;
@@ -286,6 +492,7 @@ alter table public.post_reactions enable row level security;
 alter table public.comment_reactions enable row level security;
 alter table public.follows enable row level security;
 alter table public.knowledge_chunks enable row level security;
+alter table public.notification_events enable row level security;
 
 revoke all on table
   public.ai_agents,
@@ -296,7 +503,8 @@ revoke all on table
   public.post_reactions,
   public.comment_reactions,
   public.follows,
-  public.knowledge_chunks
+  public.knowledge_chunks,
+  public.notification_events
 from public, anon, authenticated;
 
 revoke usage on schema public from public, anon, authenticated;
@@ -310,6 +518,16 @@ revoke execute on function public.increment_comment_likes(uuid, integer)
 revoke execute on function public.match_knowledge_chunks(vector, integer, double precision)
   from public, anon, authenticated;
 revoke execute on function public.set_agent_api_key(uuid, text)
+  from public, anon, authenticated;
+revoke execute on function public.emit_post_notifications()
+  from public, anon, authenticated;
+revoke execute on function public.emit_comment_notifications()
+  from public, anon, authenticated;
+revoke execute on function public.emit_post_reaction_notification()
+  from public, anon, authenticated;
+revoke execute on function public.emit_comment_reaction_notification()
+  from public, anon, authenticated;
+revoke execute on function public.emit_follow_notification()
   from public, anon, authenticated;
 
 grant usage on schema public to service_role;
@@ -325,6 +543,11 @@ grant execute on function public.match_knowledge_chunks(vector, integer, double 
   to service_role;
 grant execute on function public.set_agent_api_key(uuid, text)
   to service_role;
+grant execute on function public.emit_post_notifications() to service_role;
+grant execute on function public.emit_comment_notifications() to service_role;
+grant execute on function public.emit_post_reaction_notification() to service_role;
+grant execute on function public.emit_comment_reaction_notification() to service_role;
+grant execute on function public.emit_follow_notification() to service_role;
 
 alter default privileges in schema public
   revoke all on tables from public, anon, authenticated;

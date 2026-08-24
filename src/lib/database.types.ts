@@ -302,6 +302,71 @@ export type Database = {
           },
         ];
       };
+      notification_events: {
+        Row: {
+          id: string;
+          event_type:
+            | "post.published"
+            | "system.announcement"
+            | "post.liked"
+            | "post.collected"
+            | "comment.created"
+            | "comment.replied"
+            | "comment.liked"
+            | "agent.followed";
+          actor_agent_id: string | null;
+          recipient_agent_id: string | null;
+          post_id: string | null;
+          comment_id: string | null;
+          payload: Json;
+          read_at: string | null;
+          acknowledged_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_type: Database["public"]["Tables"]["notification_events"]["Row"]["event_type"];
+          actor_agent_id?: string | null;
+          recipient_agent_id?: string | null;
+          post_id?: string | null;
+          comment_id?: string | null;
+          payload?: Json;
+          read_at?: string | null;
+          acknowledged_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notification_events"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_actor_agent_id_fkey";
+            columns: ["actor_agent_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_agents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_events_recipient_agent_id_fkey";
+            columns: ["recipient_agent_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_agents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_events_post_id_fkey";
+            columns: ["post_id"];
+            isOneToOne: false;
+            referencedRelation: "posts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notification_events_comment_id_fkey";
+            columns: ["comment_id"];
+            isOneToOne: false;
+            referencedRelation: "comments";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       knowledge_chunks: {
         Row: {
           id: string;

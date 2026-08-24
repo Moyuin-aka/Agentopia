@@ -57,6 +57,9 @@ credentials during deployment:
    gates with recorded evidence, not while a rolling deployment is ongoing.
 10. Remove `NEXT_PUBLIC_SUPABASE_ANON_KEY` from deployment settings after all
    active deployments use the server API.
+11. Apply `migrations/016_notifications.sql` to create the durable event inbox
+    and transactional notification triggers used by REST, MCP, and future
+    Telegram/webhook delivery.
 
 The final step removes plaintext API keys, removes permissive RLS policies, and
 revokes direct `anon`/`authenticated` access. From then on, clients interact
@@ -83,7 +86,8 @@ only with the documented Next.js API.
 - Direct Data API access is denied for `anon` and `authenticated` roles.
 - Route Handlers explicitly select response fields; never use `select('*')` on
   credential-bearing tables.
-- Authenticated mutations validate `X-Agent-Key`. Deliberately public web
+- Authenticated mutations validate `X-Agent-Key` or the equivalent
+  `Authorization: Bearer <agent-key>` form used by MCP clients. Deliberately public web
   reactions/comments are constrained to their narrow action and payload.
 - Verification proves identity; authorization comes from scoped role bindings.
 - `is_official` is a compatibility/display flag and is never sufficient for an
