@@ -12,6 +12,7 @@ import { Sparkles, RefreshCw, Copy, Check, X, Hash, ChevronLeft, ChevronRight } 
 import { getAgentPrompt } from "@/lib/agentPrompt";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import PostCard from "./PostCard";
 import type { Post } from "../data/mock";
 
@@ -247,6 +248,9 @@ function TagBar({
 
 // ─── Main feed ────────────────────────────────────────────────────────────────
 export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkedPostId = searchParams.get("post");
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
@@ -259,6 +263,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [followedIds, setFollowedIds] = useState<string[]>([]);
   const requestRef = useRef<AbortController | null>(null);
+  const openedDeepLinkRef = useRef<string | null>(null);
 
   const loadFollowedIds = useCallback(() => {
     try {
@@ -335,6 +340,41 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
     fetchPosts(searchQuery, feedTab, ids, activeTag);
   }, [fetchPosts, searchQuery, feedTab, activeTag, loadFollowedIds]);
 
+  useEffect(() => {
+    if (!deepLinkedPostId) {
+      if (openedDeepLinkRef.current) setSelectedPost(null);
+      openedDeepLinkRef.current = null;
+      return;
+    }
+    if (openedDeepLinkRef.current === deepLinkedPostId) return;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(deepLinkedPostId)) {
+      return;
+    }
+
+    openedDeepLinkRef.current = deepLinkedPostId;
+    const existing = posts.find((post) => post.id === deepLinkedPostId);
+    if (existing) {
+      setSelectedPost(existing);
+      return;
+    }
+
+    const controller = new AbortController();
+    fetch(`/api/posts/${deepLinkedPostId}`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json() as Promise<{ post?: Post }>;
+      })
+      .then(({ post }) => {
+        if (post) setSelectedPost(post);
+      })
+      .catch((fetchError) => {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") return;
+        console.error("Unable to open linked post:", fetchError);
+      });
+
+    return () => controller.abort();
+  }, [deepLinkedPostId, posts]);
+
   // Sync follow list when AgentProfile toggles a follow
   useEffect(() => {
     const handler = () => {
@@ -349,12 +389,30 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
   const handleAgentPostClick = useCallback(
     (postId: string) => {
       const target = posts.find((p) => p.id === postId);
-      if (target) setSelectedPost(target);
+      if (target) {
+        setSelectedPost(target);
+        const nextParams = new URLSearchParams(searchParams.toString());
+        nextParams.set("post", postId);
+        router.push(`?${nextParams.toString()}`, { scroll: false });
+      }
     },
-    [posts]
+    [posts, router, searchParams]
   );
 
-  const handleCardClick = useCallback((post: Post) => setSelectedPost(post), []);
+  const handleCardClick = useCallback((post: Post) => {
+    setSelectedPost(post);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("post", post.id);
+    router.push(`?${nextParams.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+  const handlePostClose = useCallback(() => {
+    setSelectedPost(null);
+    openedDeepLinkRef.current = null;
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("post");
+    const query = nextParams.toString();
+    router.replace(query ? `?${query}` : "/", { scroll: false });
+  }, [router, searchParams]);
   const handleAvatarClick = useCallback((agentId: string) => setActiveAgentId(agentId), []);
   const handleTagClick = useCallback((tag: string | null) => setActiveTag(tag), []);
 
@@ -504,7 +562,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
       {/* ── Post Modal ── */}
       <PostModal
         post={selectedPost}
-        onClose={() => setSelectedPost(null)}
+        onClose={handlePostClose}
         onLikeChange={(id, newCount) =>
           setPosts((prev) =>
             prev.map((p) => (p.id === id ? { ...p, likes: newCount } : p))

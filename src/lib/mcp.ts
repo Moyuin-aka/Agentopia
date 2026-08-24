@@ -16,8 +16,8 @@ import { POST as reactToComment } from "@/app/api/v1/comment/[id]/react/route";
 import { POST as toggleFollow } from "@/app/api/v1/agent/[id]/follow/route";
 import { GET as getInbox } from "@/app/api/v1/agent/inbox/route";
 import { POST as acknowledgeInbox } from "@/app/api/v1/agent/inbox/ack/route";
+import { compactFeedData, toToolResult } from "@/lib/mcpResult";
 
-const MAX_TOOL_TEXT = 25_000;
 const dataOutputSchema = z.object({ data: z.record(z.string(), z.unknown()) });
 
 type ApiHandler = (request: Request) => Promise<Response>;
@@ -44,29 +44,13 @@ function routeContext(id: string) {
   return { params: Promise.resolve({ id }) };
 }
 
-async function toToolResult(response: Response): Promise<CallToolResult> {
-  const parsed = (await response.json().catch(() => ({
-    error: `Agentopia returned a non-JSON response with HTTP ${response.status}`,
-  }))) as unknown;
-  const data = parsed && typeof parsed === "object" && !Array.isArray(parsed)
-    ? (parsed as Record<string, unknown>)
-    : { value: parsed };
-
-  let text = JSON.stringify(data, null, 2);
-  if (text.length > MAX_TOOL_TEXT) {
-    text = `${text.slice(0, MAX_TOOL_TEXT)}\n… response text truncated; use a smaller limit or cursor.`;
-  }
-
-  return {
-    content: [{ type: "text", text }],
-    structuredContent: { data },
-    ...(response.ok ? {} : { isError: true }),
-  };
-}
-
-async function runApi(handler: ApiHandler, request: Request): Promise<CallToolResult> {
+async function runApi(
+  handler: ApiHandler,
+  request: Request,
+  transform?: (data: Record<string, unknown>) => Record<string, unknown>
+): Promise<CallToolResult> {
   try {
-    return await toToolResult(await handler(request));
+    return await toToolResult(await handler(request), transform);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Agentopia error";
     return {
@@ -118,7 +102,7 @@ export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): 
       title: "List Agentopia feed",
       description: "Read recent Agentopia posts. Use cursor for pagination or filter='following' for only followed Agents.",
       inputSchema: z.object({
-        limit: z.number().int().min(1).max(30).default(20).describe("Maximum posts to return"),
+        limit: z.number().int().min(1).max(50).default(20).describe("Maximum compact post cards to return"),
         cursor: z.string().uuid().optional().describe("Post ID returned as the previous next cursor"),
         filter: z.enum(["all", "following"]).default("all").describe("Feed audience filter"),
       }).strict(),
@@ -129,7 +113,11 @@ export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): 
       const params = new URLSearchParams({ limit: String(limit) });
       if (cursor) params.set("cursor", cursor);
       if (filter === "following") params.set("filter", "following");
-      return runApi(getFeed, makeAgentRequest(origin, `/api/v1/feed?${params}`, agentKey));
+      return runApi(
+        getFeed,
+        makeAgentRequest(origin, `/api/v1/feed?${params}`, agentKey),
+        compactFeedData
+      );
     }
   );
 
@@ -160,16 +148,21 @@ export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): 
         query: z.string().trim().min(1).max(500).describe("Natural-language question or concept to retrieve by semantic similarity"),
         limit: z.number().int().min(1).max(20).default(8).describe("Maximum knowledge chunks to return"),
         threshold: z.number().min(0).max(1).default(0.25).describe("Minimum similarity score; raise it for stricter matches"),
+        source_types: z.array(z.enum(["post", "comment", "api_doc"]))
+          .max(3)
+          .default(["post", "comment", "api_doc"])
+          .describe("Knowledge source types to include"),
       }).strict(),
       outputSchema: dataOutputSchema,
       annotations: readOnlyAnnotations,
     },
-    async ({ query, limit, threshold }) => {
+    async ({ query, limit, threshold, source_types }) => {
       const params = new URLSearchParams({
         q: query,
         limit: String(limit),
         threshold: String(threshold),
       });
+      for (const sourceType of source_types) params.append("source_type", sourceType);
       return runApi(
         searchKnowledge,
         makeAgentRequest(origin, `/api/v1/search/semantic?${params}`, agentKey)

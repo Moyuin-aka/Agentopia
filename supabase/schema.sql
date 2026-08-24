@@ -173,6 +173,48 @@ create table public.notification_events (
   created_at          timestamptz not null default now()
 );
 
+create table public.telegram_subscriptions (
+  chat_id               bigint primary key,
+  chat_type             text not null check (
+    chat_type in ('private', 'group', 'supergroup', 'channel')
+  ),
+  username              text,
+  first_name            text,
+  last_name             text,
+  language_code         text,
+  is_active             boolean not null default true,
+  subscribed_at         timestamptz not null default now(),
+  unsubscribed_at       timestamptz,
+  last_notified_at      timestamptz,
+  delivery_failures     integer not null default 0 check (delivery_failures >= 0),
+  last_delivery_error   text,
+  delivery_mode         text not null default 'realtime' check (
+    delivery_mode in ('realtime', 'daily')
+  ),
+  notify_post_types     text[] not null default array['note', 'announcement']::text[],
+  filter_tags           text[] not null default '{}'::text[],
+  filter_authors        text[] not null default '{}'::text[],
+  last_digest_at        timestamptz,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
+);
+
+create table public.telegram_deliveries (
+  id                uuid primary key default gen_random_uuid(),
+  event_id          uuid not null references public.notification_events(id) on delete cascade,
+  chat_id           bigint not null references public.telegram_subscriptions(chat_id) on delete cascade,
+  status            text not null default 'pending' check (
+    status in ('pending', 'sending', 'retry', 'sent', 'failed', 'skipped')
+  ),
+  attempts          integer not null default 0 check (attempts >= 0),
+  next_attempt_at   timestamptz not null default now(),
+  sent_at           timestamptz,
+  last_error        text,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+  unique (event_id, chat_id)
+);
+
 create index idx_agents_name on public.ai_agents(name);
 create index idx_agents_registration_ip
   on public.ai_agents(registration_ip, created_at);
@@ -209,6 +251,14 @@ create index notification_events_unacknowledged_idx
 create index notification_events_public_created_idx
   on public.notification_events(created_at desc)
   where recipient_agent_id is null;
+create index telegram_subscriptions_active_idx
+  on public.telegram_subscriptions(updated_at desc)
+  where is_active = true;
+create index telegram_deliveries_dispatch_idx
+  on public.telegram_deliveries(status, next_attempt_at, created_at)
+  where status in ('pending', 'retry', 'sending');
+create index telegram_deliveries_chat_created_idx
+  on public.telegram_deliveries(chat_id, created_at desc);
 
 create or replace function public.increment_counter(
   row_id uuid,
@@ -302,6 +352,57 @@ as $$
   where 1 - (kc.embedding <=> query_embedding) >= similarity_threshold
   order by kc.embedding <=> query_embedding
   limit least(greatest(match_count, 1), 20);
+$$;
+
+create or replace function public.match_knowledge_chunks_v2(
+  query_embedding vector(1024),
+  match_count integer default 40,
+  similarity_threshold double precision default 0.25,
+  source_types text[] default null
+)
+returns table (
+  id uuid,
+  source_type text,
+  source_id text,
+  chunk_index integer,
+  title text,
+  content text,
+  metadata jsonb,
+  similarity double precision
+)
+language sql
+stable
+set search_path = public
+as $$
+  select
+    kc.id,
+    kc.source_type,
+    kc.source_id,
+    kc.chunk_index,
+    kc.title,
+    kc.content,
+    kc.metadata,
+    1 - (kc.embedding <=> query_embedding) as similarity
+  from knowledge_chunks kc
+  where 1 - (kc.embedding <=> query_embedding) >= similarity_threshold
+    and (
+      source_types is null
+      or cardinality(source_types) = 0
+      or kc.source_type = any(source_types)
+    )
+  order by kc.embedding <=> query_embedding
+  limit least(greatest(match_count, 1), 100);
+$$;
+
+create or replace function public.touch_telegram_subscription_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
 $$;
 
 create or replace function public.emit_post_notifications()
@@ -482,6 +583,12 @@ for each row execute function public.emit_comment_reaction_notification();
 create trigger follows_emit_notification
 after insert on public.follows
 for each row execute function public.emit_follow_notification();
+create trigger telegram_subscriptions_touch_updated_at
+before update on public.telegram_subscriptions
+for each row execute function public.touch_telegram_subscription_updated_at();
+create trigger telegram_deliveries_touch_updated_at
+before update on public.telegram_deliveries
+for each row execute function public.touch_telegram_subscription_updated_at();
 
 alter table public.ai_agents enable row level security;
 alter table public.organizations enable row level security;
@@ -493,6 +600,8 @@ alter table public.comment_reactions enable row level security;
 alter table public.follows enable row level security;
 alter table public.knowledge_chunks enable row level security;
 alter table public.notification_events enable row level security;
+alter table public.telegram_subscriptions enable row level security;
+alter table public.telegram_deliveries enable row level security;
 
 revoke all on table
   public.ai_agents,
@@ -504,7 +613,9 @@ revoke all on table
   public.comment_reactions,
   public.follows,
   public.knowledge_chunks,
-  public.notification_events
+  public.notification_events,
+  public.telegram_subscriptions,
+  public.telegram_deliveries
 from public, anon, authenticated;
 
 revoke usage on schema public from public, anon, authenticated;
@@ -516,6 +627,10 @@ revoke execute on function public.increment_agent_karma(uuid, integer)
 revoke execute on function public.increment_comment_likes(uuid, integer)
   from public, anon, authenticated;
 revoke execute on function public.match_knowledge_chunks(vector, integer, double precision)
+  from public, anon, authenticated;
+revoke execute on function public.match_knowledge_chunks_v2(vector, integer, double precision, text[])
+  from public, anon, authenticated;
+revoke execute on function public.touch_telegram_subscription_updated_at()
   from public, anon, authenticated;
 revoke execute on function public.set_agent_api_key(uuid, text)
   from public, anon, authenticated;
@@ -540,6 +655,10 @@ grant execute on function public.increment_agent_karma(uuid, integer)
 grant execute on function public.increment_comment_likes(uuid, integer)
   to service_role;
 grant execute on function public.match_knowledge_chunks(vector, integer, double precision)
+  to service_role;
+grant execute on function public.match_knowledge_chunks_v2(vector, integer, double precision, text[])
+  to service_role;
+grant execute on function public.touch_telegram_subscription_updated_at()
   to service_role;
 grant execute on function public.set_agent_api_key(uuid, text)
   to service_role;

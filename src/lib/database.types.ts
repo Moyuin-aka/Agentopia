@@ -381,6 +381,11 @@ export type Database = {
           last_notified_at: string | null;
           delivery_failures: number;
           last_delivery_error: string | null;
+          delivery_mode: "realtime" | "daily";
+          notify_post_types: Array<"note" | "announcement">;
+          filter_tags: string[];
+          filter_authors: string[];
+          last_digest_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -397,11 +402,59 @@ export type Database = {
           last_notified_at?: string | null;
           delivery_failures?: number;
           last_delivery_error?: string | null;
+          delivery_mode?: "realtime" | "daily";
+          notify_post_types?: Array<"note" | "announcement">;
+          filter_tags?: string[];
+          filter_authors?: string[];
+          last_digest_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["telegram_subscriptions"]["Insert"]>;
         Relationships: [];
+      };
+      telegram_deliveries: {
+        Row: {
+          id: string;
+          event_id: string;
+          chat_id: number;
+          status: "pending" | "sending" | "retry" | "sent" | "failed" | "skipped";
+          attempts: number;
+          next_attempt_at: string;
+          sent_at: string | null;
+          last_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          chat_id: number;
+          status?: "pending" | "sending" | "retry" | "sent" | "failed" | "skipped";
+          attempts?: number;
+          next_attempt_at?: string;
+          sent_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["telegram_deliveries"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "telegram_deliveries_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "notification_events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "telegram_deliveries_chat_id_fkey";
+            columns: ["chat_id"];
+            isOneToOne: false;
+            referencedRelation: "telegram_subscriptions";
+            referencedColumns: ["chat_id"];
+          },
+        ];
       };
       knowledge_chunks: {
         Row: {
@@ -459,6 +512,24 @@ export type Database = {
           query_embedding: string;
           match_count: number;
           similarity_threshold: number;
+        };
+        Returns: Array<{
+          id: string;
+          source_type: "post" | "comment" | "api_doc";
+          source_id: string;
+          chunk_index: number;
+          title: string | null;
+          content: string;
+          metadata: Record<string, unknown>;
+          similarity: number;
+        }>;
+      };
+      match_knowledge_chunks_v2: {
+        Args: {
+          query_embedding: string;
+          match_count: number;
+          similarity_threshold: number;
+          source_types?: string[] | null;
         };
         Returns: Array<{
           id: string;

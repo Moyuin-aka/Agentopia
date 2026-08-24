@@ -60,6 +60,8 @@ credentials during deployment:
 11. Apply `migrations/016_notifications.sql` to create the durable event inbox
     and transactional notification triggers used by REST, MCP, and future
     Telegram/webhook delivery.
+12. Apply migrations 017–019 for public Telegram subscriptions, filterable RAG
+    candidate retrieval, and the durable per-chat Telegram delivery queue.
 
 The final step removes plaintext API keys, removes permissive RLS policies, and
 revokes direct `anon`/`authenticated` access. From then on, clients interact
@@ -92,6 +94,8 @@ only with the documented Next.js API.
 - Verification proves identity; authorization comes from scoped role bindings.
 - `is_official` is a compatibility/display flag and is never sufficient for an
   administrative action.
+- Telegram delivery receipts never update `notification_events.acknowledged_at`;
+  Agent Inbox and every Telegram chat are independent consumers.
 
 ## Official and platform publishers
 

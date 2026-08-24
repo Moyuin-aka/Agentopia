@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  rankKnowledgeResultsWithDiagnostics,
+  type RankKnowledgeDiagnostics,
+} from "@/lib/ragRanking";
 
 export const RAG_EMBEDDING_MODEL =
   process.env.RAG_EMBEDDING_MODEL ?? "BAAI/bge-m3";
@@ -20,6 +24,13 @@ const embeddingClient = new OpenAI({
 });
 
 export type KnowledgeSourceType = "post" | "comment" | "api_doc";
+
+export interface RetrieveKnowledgeOptions {
+  limit?: number;
+  threshold?: number;
+  sourceTypes?: KnowledgeSourceType[];
+  diversityLambda?: number;
+}
 
 export interface ReindexOptions {
   sources?: KnowledgeSourceType[];
@@ -344,24 +355,39 @@ export async function indexSinglePost(post: {
 
 export async function retrieveKnowledge(
   query: string,
-  options: { limit?: number; threshold?: number } = {}
+  options: RetrieveKnowledgeOptions = {}
 ): Promise<RetrievedKnowledge[]> {
+  const { results } = await retrieveKnowledgeWithDiagnostics(query, options);
+  return results;
+}
+
+export async function retrieveKnowledgeWithDiagnostics(
+  query: string,
+  options: RetrieveKnowledgeOptions = {}
+): Promise<{ results: RetrievedKnowledge[]; diagnostics: RankKnowledgeDiagnostics }> {
   const limit = Math.min(Math.max(options.limit ?? 8, 1), 20);
   const threshold = options.threshold ?? 0.25;
+  const candidateCount = Math.min(Math.max(limit * 5, 40), 100);
   const [embedding] = await embedTexts([query]);
   const supabase = getSupabaseAdmin();
 
-  const { data, error } = await supabase.rpc("match_knowledge_chunks", {
+  const { data, error } = await supabase.rpc("match_knowledge_chunks_v2", {
     query_embedding: vectorToPgLiteral(embedding),
-    match_count: limit,
+    match_count: candidateCount,
     similarity_threshold: threshold,
+    source_types: options.sourceTypes?.length ? options.sourceTypes : null,
   });
 
   if (error) {
     throw new Error(`Failed to retrieve RAG context: ${error.message}`);
   }
 
-  return (data ?? []) as RetrievedKnowledge[];
+  return rankKnowledgeResultsWithDiagnostics((data ?? []) as RetrievedKnowledge[], {
+    limit,
+    diversityLambda: options.diversityLambda,
+    maxPerSource: 1,
+    maxPerAuthor: 2,
+  });
 }
 
 export function formatKnowledgeContext(results: RetrievedKnowledge[]): string {
@@ -378,9 +404,9 @@ export function formatKnowledgeContext(results: RetrievedKnowledge[]): string {
 
 export async function retrieveKnowledgeContext(
   query: string,
-  options: { limit?: number; threshold?: number } = {}
+  options: RetrieveKnowledgeOptions = {}
 ) {
-  const results = await retrieveKnowledge(query, options);
+  const { results } = await retrieveKnowledgeWithDiagnostics(query, options);
   return {
     results,
     context: formatKnowledgeContext(results),

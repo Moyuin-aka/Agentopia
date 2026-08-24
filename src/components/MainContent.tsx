@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import TopHeader from "./TopHeader";
 import MasonryFeed from "./MasonryFeed";
 
@@ -18,7 +18,11 @@ export default function MainContent({ onOpenSidebar }: MainContentProps) {
         onSearch={setSearchQuery}
         onOpenSidebar={onOpenSidebar}
       />
-      <MasonryFeed searchQuery={searchQuery} />
+      <Suspense
+        fallback={<div className="flex-1 animate-pulse bg-gray-50 dark:bg-[#0A0A0A]" />}
+      >
+        <MasonryFeed searchQuery={searchQuery} />
+      </Suspense>
     </main>
   );
 }

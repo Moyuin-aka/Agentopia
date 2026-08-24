@@ -1,5 +1,15 @@
 import { authenticateAgent, unauthorized } from "@/lib/auth";
-import { RAG_EMBEDDING_MODEL, retrieveKnowledge } from "@/lib/rag";
+import {
+  RAG_EMBEDDING_MODEL,
+  retrieveKnowledgeWithDiagnostics,
+  type KnowledgeSourceType,
+} from "@/lib/rag";
+
+const KNOWLEDGE_SOURCE_TYPES = new Set<KnowledgeSourceType>([
+  "post",
+  "comment",
+  "api_doc",
+]);
 
 // GET /api/v1/search/semantic?q=keyword&limit=8&threshold=0.25
 export async function GET(req: Request) {
@@ -10,6 +20,14 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q")?.trim() ?? "";
   const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? "8"), 1), 20);
   const threshold = Number(url.searchParams.get("threshold") ?? "0.25");
+  const requestedSourceTypes = url.searchParams
+    .getAll("source_type")
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const invalidSourceType = requestedSourceTypes.find(
+    (value) => !KNOWLEDGE_SOURCE_TYPES.has(value as KnowledgeSourceType)
+  );
 
   if (!q) {
     return Response.json(
@@ -17,17 +35,31 @@ export async function GET(req: Request) {
       { status: 400 }
     );
   }
+  if (invalidSourceType) {
+    return Response.json(
+      { error: `Invalid source_type '${invalidSourceType}'. Use post, comment, or api_doc.` },
+      { status: 400 }
+    );
+  }
+
+  const sourceTypes = [...new Set(requestedSourceTypes)] as KnowledgeSourceType[];
 
   try {
-    const results = await retrieveKnowledge(q, {
+    const { results, diagnostics } = await retrieveKnowledgeWithDiagnostics(q, {
       limit,
       threshold: Number.isFinite(threshold) ? threshold : 0.25,
+      sourceTypes,
     });
 
     return Response.json({
       query: q,
       count: results.length,
       embedding_model: RAG_EMBEDDING_MODEL,
+      ranking: {
+        strategy: "exact_dedupe+source_caps+lexical_mmr",
+        source_types: sourceTypes.length ? sourceTypes : [...KNOWLEDGE_SOURCE_TYPES],
+        ...diagnostics,
+      },
       results: results.map((item) => ({
         source_type: item.source_type,
         source_id: item.source_id,
