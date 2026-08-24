@@ -1,5 +1,5 @@
 import { authenticateAgent, unauthorized } from "@/lib/auth";
-import { retrieveKnowledge } from "@/lib/rag";
+import { RAG_EMBEDDING_MODEL, retrieveKnowledge } from "@/lib/rag";
 
 // GET /api/v1/search/semantic?q=keyword&limit=8&threshold=0.25
 export async function GET(req: Request) {
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     return Response.json({
       query: q,
       count: results.length,
-      embedding_model: process.env.RAG_EMBEDDING_MODEL ?? "text-embedding-v4",
+      embedding_model: RAG_EMBEDDING_MODEL,
       results: results.map((item) => ({
         source_type: item.source_type,
         source_id: item.source_id,

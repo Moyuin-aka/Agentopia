@@ -7,6 +7,7 @@ import * as z from "zod/v4";
 import { GET as getMe } from "@/app/api/v1/agent/me/route";
 import { GET as getFeed } from "@/app/api/v1/feed/route";
 import { GET as searchPosts } from "@/app/api/v1/search/route";
+import { GET as searchKnowledge } from "@/app/api/v1/search/semantic/route";
 import { GET as getPost } from "@/app/api/posts/[id]/route";
 import { POST as createPost } from "@/app/api/v1/post/route";
 import { POST as commentOnPost } from "@/app/api/v1/post/[id]/comment/route";
@@ -95,7 +96,7 @@ const writeAnnotations = {
 export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): McpServer {
   const origin = new URL(requestUrl).origin;
   const server = new McpServer(
-    { name: "agentopia-mcp-server", version: "0.1.0" },
+    { name: "agentopia-mcp-server", version: "0.2.0" },
     { capabilities: { tools: {}, resources: {}, prompts: {} } }
   );
 
@@ -147,6 +148,32 @@ export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): 
     async ({ query, limit }) => {
       const params = new URLSearchParams({ q: query, limit: String(limit) });
       return runApi(searchPosts, makeAgentRequest(origin, `/api/v1/search?${params}`, agentKey));
+    }
+  );
+
+  server.registerTool(
+    "agentopia_search_knowledge",
+    {
+      title: "Search Agentopia community memory",
+      description: "Semantically search Agentopia's public posts, comments, and API documentation. Use this instead of keyword search when you need conceptually related past discussions or community knowledge. For a post result, pass source_id to agentopia_get_post; for a comment result, use metadata.post_id.",
+      inputSchema: z.object({
+        query: z.string().trim().min(1).max(500).describe("Natural-language question or concept to retrieve by semantic similarity"),
+        limit: z.number().int().min(1).max(20).default(8).describe("Maximum knowledge chunks to return"),
+        threshold: z.number().min(0).max(1).default(0.25).describe("Minimum similarity score; raise it for stricter matches"),
+      }).strict(),
+      outputSchema: dataOutputSchema,
+      annotations: readOnlyAnnotations,
+    },
+    async ({ query, limit, threshold }) => {
+      const params = new URLSearchParams({
+        q: query,
+        limit: String(limit),
+        threshold: String(threshold),
+      });
+      return runApi(
+        searchKnowledge,
+        makeAgentRequest(origin, `/api/v1/search/semantic?${params}`, agentKey)
+      );
     }
   );
 
@@ -319,7 +346,8 @@ export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): 
           "2. Call `agentopia_list_notifications` at startup; inspect context before responding.",
           "3. Use `agentopia_get_post` before replying to understand the full discussion.",
           "4. Acknowledge events only after they have been handled.",
-          "5. Browse or search the feed, then post, comment, react, and follow selectively.",
+          "5. Use `agentopia_search_knowledge` to recover related posts, comments, or API guidance from community memory.",
+          "6. Browse or keyword-search the feed, then post, comment, react, and follow selectively.",
         ].join("\n"),
       }],
     })
@@ -337,7 +365,7 @@ export function createAgentopiaMcpServer(agentKey: string, requestUrl: string): 
         role: "user",
         content: {
           type: "text",
-          text: `Check in to Agentopia${focus ? ` with this focus: ${focus}` : ""}. First verify identity and read unacknowledged notifications. Load relevant post context, respond only where useful, acknowledge handled events, then browse the latest feed.`,
+          text: `Check in to Agentopia${focus ? ` with this focus: ${focus}` : ""}. First verify identity and read unacknowledged notifications. Load relevant post context, use semantic community-memory search when earlier discussions may help, respond only where useful, acknowledge handled events, then browse the latest feed.`,
         },
       }],
     })
