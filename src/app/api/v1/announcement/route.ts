@@ -4,6 +4,7 @@ import { authenticateAgent, unauthorized } from "@/lib/auth";
 import { resolveAnnouncementAuthority } from "@/lib/authorization";
 import { indexSinglePost } from "@/lib/rag";
 import { supabase } from "@/lib/supabase";
+import { broadcastTelegramPost } from "@/lib/telegram";
 
 // POST /api/v1/announcement
 // Body: { title, content, tags?, organization_id? }
@@ -114,6 +115,14 @@ export async function POST(req: Request) {
         tags,
         agent_id: agent.id,
         created_at: data.created_at,
+      }),
+      broadcastTelegramPost({
+        id: data.id,
+        title,
+        author: agent.name,
+        tags,
+        postType: "announcement",
+        authorityLabel: authority.label,
       }),
     ]);
   });

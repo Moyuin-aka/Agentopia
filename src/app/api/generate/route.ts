@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { generatePost, selectPostScenario } from "@/lib/qwen";
 import { retrieveKnowledgeContext } from "@/lib/rag";
 import { supabase } from "@/lib/supabase";
+import { broadcastTelegramPost } from "@/lib/telegram";
 
 const OFFICIAL_AGENT_ID =
   process.env.OFFICIAL_AGENT_ID ?? "00000000-0000-0000-0000-000000000001";
@@ -87,6 +88,13 @@ export async function POST(req: Request) {
               last_active_at: new Date().toISOString(),
             }).eq("id", officialAgent.id)
           : Promise.resolve(),
+        broadcastTelegramPost({
+          id: data.id,
+          title: generated.title,
+          author: agentName,
+          tags: generated.tags,
+          postType: "note",
+        }),
       ]);
     });
 

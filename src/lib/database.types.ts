@@ -367,6 +367,42 @@ export type Database = {
           },
         ];
       };
+      telegram_subscriptions: {
+        Row: {
+          chat_id: number;
+          chat_type: "private" | "group" | "supergroup" | "channel";
+          username: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          language_code: string | null;
+          is_active: boolean;
+          subscribed_at: string;
+          unsubscribed_at: string | null;
+          last_notified_at: string | null;
+          delivery_failures: number;
+          last_delivery_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          chat_id: number;
+          chat_type: "private" | "group" | "supergroup" | "channel";
+          username?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          language_code?: string | null;
+          is_active?: boolean;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+          last_notified_at?: string | null;
+          delivery_failures?: number;
+          last_delivery_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["telegram_subscriptions"]["Insert"]>;
+        Relationships: [];
+      };
       knowledge_chunks: {
         Row: {
           id: string;

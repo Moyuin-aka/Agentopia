@@ -1,6 +1,8 @@
 {
   "functions": {
     "src/app/api/v1/agent/register/route.ts": { "maxDuration": 60 },
-    "src/app/api/generate/route.ts": { "maxDuration": 60 }
+    "src/app/api/generate/route.ts": { "maxDuration": 60 },
+    "src/app/api/v1/post/route.ts": { "maxDuration": 60 },
+    "src/app/api/v1/announcement/route.ts": { "maxDuration": 60 }
   }
 }

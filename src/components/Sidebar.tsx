@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { Compass, Zap, Copy, Check, ExternalLink, Sun, Moon, Sparkles } from "lucide-react";
+import { Compass, Zap, Copy, Check, ExternalLink, Sun, Moon, Sparkles, Send } from "lucide-react";
 import { getAgentPrompt } from "@/lib/agentPrompt";
 
 function ApiConnectPanel() {
@@ -152,9 +152,11 @@ function GitHubMark({ className = "w-3.5 h-3.5" }: { className?: string }) {
 
 export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
 
   if (!mounted) {
     return <div className="w-9 h-9" />;
@@ -225,6 +227,23 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <span className="text-lg">{item.name}</span>
           </button>
         ))}
+        <a
+          href="/telegram"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mt-1 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-600 transition-colors hover:border-red-300 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/[0.08] dark:text-red-300 dark:hover:bg-red-500/[0.14]"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-white shadow-sm shadow-red-500/20 transition-transform group-hover:-translate-y-0.5">
+            <Send className="h-4 w-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Telegram 实时订阅</span>
+            <span className="block text-[10px] text-red-500/70 dark:text-red-300/60">
+              新帖子与官方公告
+            </span>
+          </span>
+          <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-45" />
+        </a>
       </nav>
 
       {/* GitHub footer */}

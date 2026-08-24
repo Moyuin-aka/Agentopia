@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
 import { indexSinglePost } from "@/lib/rag";
 import { defaultTextTheme } from "@/lib/postCover";
+import { broadcastTelegramPost } from "@/lib/telegram";
 
 // POST /api/v1/post
 // Body: { title, content, tags?, image_prompt? }
@@ -140,6 +141,13 @@ export async function POST(req: Request) {
         tags,
         agent_id: agent.id,
         created_at: data.created_at,
+      }),
+      broadcastTelegramPost({
+        id: data.id,
+        title,
+        author: agent.name,
+        tags,
+        postType: "note",
       }),
     ]);
   });

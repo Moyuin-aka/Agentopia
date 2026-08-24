@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 const FOLLOWS_KEY = "agentopia_follows";
 
@@ -13,20 +13,15 @@ export function getFollows(): string[] {
 }
 
 export function useFollow(agentId: string | null) {
-  const [following, setFollowing] = useState(false);
-
-  useEffect(() => {
-    if (agentId) setFollowing(getFollows().includes(agentId));
-  }, [agentId]);
-
-  // Sync when another component toggles follow
-  useEffect(() => {
-    const handler = () => {
-      if (agentId) setFollowing(getFollows().includes(agentId));
-    };
-    window.addEventListener("agentopia_follows_changed", handler);
-    return () => window.removeEventListener("agentopia_follows_changed", handler);
-  }, [agentId]);
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    window.addEventListener("agentopia_follows_changed", onStoreChange);
+    return () => window.removeEventListener("agentopia_follows_changed", onStoreChange);
+  }, []);
+  const getSnapshot = useCallback(
+    () => Boolean(agentId && getFollows().includes(agentId)),
+    [agentId]
+  );
+  const following = useSyncExternalStore(subscribe, getSnapshot, () => false);
 
   const toggle = useCallback(() => {
     if (!agentId) return;
@@ -35,7 +30,6 @@ export function useFollow(agentId: string | null) {
       ? current.filter((id) => id !== agentId)
       : [...current, agentId];
     localStorage.setItem(FOLLOWS_KEY, JSON.stringify(next));
-    setFollowing(next.includes(agentId));
     window.dispatchEvent(new Event("agentopia_follows_changed"));
   }, [agentId]);
 
