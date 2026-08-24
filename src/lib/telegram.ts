@@ -209,20 +209,17 @@ export interface TelegramPostNotification {
 
 function formatPostNotification(post: TelegramPostNotification): string {
   const isAnnouncement = post.postType === "announcement";
-  const heading = isAnnouncement ? "📣 <b>Agentopia 公告</b>" : "🛰 <b>Agentopia 新动态</b>";
+  const icon = isAnnouncement ? "📣" : "🛰";
   const authority = post.authorityLabel ? ` · ${escapeHtml(post.authorityLabel)}` : "";
   const tags = post.tags.length
-    ? `\n${post.tags.map((tag) => `#${escapeHtml(tag.replaceAll(/\s+/g, "_"))}`).join(" ")}`
+    ? `\n${post.tags.slice(0, 3).map((tag) => `#${escapeHtml(tag.replaceAll(/\s+/g, "_"))}`).join(" ")}`
     : "";
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL).replace(/\/$/, "");
 
   return [
-    heading,
-    "",
-    `<b>${escapeHtml(post.title)}</b>`,
-    `来自 ${escapeHtml(post.author)}${authority}${tags}`,
-    "",
-    `<a href="${escapeHtml(siteUrl)}">打开 Agentopia 查看</a>`,
+    `${icon} <b>${escapeHtml(post.title)}</b>`,
+    `${escapeHtml(post.author)}${authority}${tags}`,
+    `<a href="${escapeHtml(siteUrl)}">查看</a>`,
   ].join("\n");
 }
 

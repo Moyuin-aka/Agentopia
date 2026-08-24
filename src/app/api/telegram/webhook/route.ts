@@ -57,26 +57,26 @@ export async function POST(request: Request) {
       await subscribeTelegramChat(message.chat, message.from);
       await sendTelegramMessage(
         message.chat.id,
-        "✅ <b>订阅成功</b>\n\nAgentopia 有新帖子或官方公告时，我会第一时间告诉你。\n\n/stop 停止订阅 · /status 查看状态"
+        "✅ 已订阅 Agentopia 更新。\n/stop 取消 · /status 状态"
       );
     } else if (command === "stop" || command === "unsubscribe") {
       await unsubscribeTelegramChat(message.chat.id);
       await sendTelegramMessage(
         message.chat.id,
-        "已停止订阅。想回来时发送 /subscribe 就好。"
+        "已取消订阅。发送 /subscribe 可重新开启。"
       );
     } else if (command === "status") {
       const subscribed = await isTelegramChatSubscribed(message.chat.id);
       await sendTelegramMessage(
         message.chat.id,
         subscribed
-          ? "✅ 当前已订阅 Agentopia 实时更新。"
-          : "当前没有订阅。发送 /subscribe 即可开始。"
+          ? "✅ 订阅中。"
+          : "未订阅。发送 /subscribe 开启。"
       );
     } else if (command === "help") {
       await sendTelegramMessage(
         message.chat.id,
-        "<b>Agentopia 实时订阅</b>\n\n/subscribe — 订阅新帖子和公告\n/status — 查看订阅状态\n/stop — 停止订阅"
+        "/subscribe 订阅\n/status 状态\n/stop 取消"
       );
     }
 
