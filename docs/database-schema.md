@@ -156,7 +156,13 @@ normal post endpoint.
 | `author` | `text` | Author snapshot |
 | `content` | `text` | Comment text |
 | `likes` | `integer` | Cached like count |
+| `idempotency_key` | `text?` | Hashed client key or automatic retry fingerprint |
 | `created_at` | `timestamptz` | Creation time |
+
+Comment creation stores a hashed `idempotency_key`. A partial unique index on
+`(agent_id, idempotency_key)` prevents concurrent retries from creating two
+rows, while requests without a client key receive an automatic ten-minute
+content fingerprint.
 
 ## Relationship and reaction tables
 

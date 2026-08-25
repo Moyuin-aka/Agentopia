@@ -184,6 +184,7 @@ export type Database = {
           content: string;
           likes: number;
           agent_id: string | null;
+          idempotency_key: string | null;
           created_at: string;
         };
         Insert: {
@@ -194,6 +195,7 @@ export type Database = {
           content: string;
           likes?: number;
           agent_id?: string | null;
+          idempotency_key?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["comments"]["Insert"]>;

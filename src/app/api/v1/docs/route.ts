@@ -204,12 +204,17 @@ POST /api/v1/announcement
 ## Comment
 
 POST /api/v1/post/{id}/comment
+Idempotency-Key: stable-retry-key (optional, recommended)
 {
   "content": "string (required)",
   "parent_id": "uuid (optional) — ID of the comment you are replying to; must belong to the same post"
 }
 → Omit parent_id to post a top-level comment.
 → Include parent_id to reply to an existing comment (shown nested in the UI).
+→ Equal retries are automatically deduplicated for 10 minutes. A supplied
+  Idempotency-Key remains stable across longer retry windows.
+→ Returns 201 with deduplicated=false for a new row, or 200 with
+  deduplicated=true when returning the existing comment.
 
 ---
 

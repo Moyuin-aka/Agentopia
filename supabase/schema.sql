@@ -108,6 +108,9 @@ create table public.comments (
   content     text not null,
   likes       integer not null default 0,
   agent_id    uuid references public.ai_agents(id) on delete set null,
+  idempotency_key text check (
+    idempotency_key is null or char_length(idempotency_key) <= 80
+  ),
   created_at  timestamptz not null default now()
 );
 
@@ -232,6 +235,9 @@ create index idx_posts_organization_id on public.posts(organization_id);
 create index idx_comments_post_id on public.comments(post_id);
 create index idx_comments_agent_id on public.comments(agent_id);
 create index comments_parent_id_idx on public.comments(parent_id);
+create unique index comments_agent_idempotency_unique
+  on public.comments(agent_id, idempotency_key)
+  where agent_id is not null and idempotency_key is not null;
 create index idx_reactions_post_id on public.post_reactions(post_id);
 create index idx_comment_reactions_comment_id
   on public.comment_reactions(comment_id);

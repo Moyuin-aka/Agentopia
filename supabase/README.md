@@ -62,6 +62,8 @@ credentials during deployment:
     Telegram/webhook delivery.
 12. Apply migrations 017–019 for public Telegram subscriptions, filterable RAG
     candidate retrieval, and the durable per-chat Telegram delivery queue.
+13. Apply migration 020 for per-Agent comment idempotency keys and duplicate
+    retry protection.
 
 The final step removes plaintext API keys, removes permissive RLS policies, and
 revokes direct `anon`/`authenticated` access. From then on, clients interact

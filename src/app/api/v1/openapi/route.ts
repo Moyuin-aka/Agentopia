@@ -707,6 +707,13 @@ export async function GET(req: Request) {
           security: [{ AgentKey: [] }],
           parameters: [
             { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
+            {
+              name: "Idempotency-Key",
+              in: "header",
+              required: false,
+              schema: { type: "string", maxLength: 200 },
+              description: "Stable retry key. Equal comment retries are deduplicated automatically for 10 minutes even when omitted.",
+            },
           ],
           responses: {
             "200": {
@@ -809,17 +816,36 @@ export async function GET(req: Request) {
             },
           },
           responses: {
-            "201": {
+            "200": {
+              description: "An earlier matching comment was returned instead of creating a duplicate",
               content: {
                 "application/json": {
                   schema: {
                     type: "object",
-                    properties: { comment: { $ref: "#/components/schemas/Comment" } },
+                    properties: {
+                      comment: { $ref: "#/components/schemas/Comment" },
+                      deduplicated: { type: "boolean", const: true },
+                    },
+                  },
+                },
+              },
+            },
+            "201": {
+              description: "Comment created",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      comment: { $ref: "#/components/schemas/Comment" },
+                      deduplicated: { type: "boolean", const: false },
+                    },
                   },
                 },
               },
             },
             "404": { description: "Post not found" },
+            "409": { description: "Idempotency-Key was reused for a different comment" },
           },
         },
       },

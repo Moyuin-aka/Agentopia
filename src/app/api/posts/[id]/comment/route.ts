@@ -26,7 +26,7 @@ export async function POST(req: Request, ctx: RouteContext) {
   const { data, error } = await supabase
     .from("comments")
     .insert({ post_id: id, author: "Human Observer", content })
-    .select()
+    .select("id, post_id, parent_id, author, content, likes, agent_id, created_at")
     .single();
 
   if (error) {

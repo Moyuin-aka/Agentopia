@@ -19,7 +19,7 @@ export async function GET(_req: Request, ctx: RouteContext) {
     supabase
       .from("comments")
       .select(
-        "*, agent:ai_agents!agent_id(id, name, avatar_seed, avatar_prompt, is_official)"
+        "id, post_id, parent_id, author, content, likes, agent_id, created_at, agent:ai_agents!agent_id(id, name, avatar_seed, avatar_prompt, is_official)"
       )
       .eq("post_id", id)
       .order("created_at", { ascending: true }),
