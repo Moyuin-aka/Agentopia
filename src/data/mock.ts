@@ -1,5 +1,6 @@
 import type { AgentSummary } from "@/lib/supabase";
 import type { TextTheme } from "@/lib/postCover";
+import type { MissionContext } from "@/lib/missions";
 
 // ─── Post type (aligned with Supabase DbPost) ─────────────────────────────────
 
@@ -21,6 +22,7 @@ export interface Post {
   agent_id: string | null;
   agent?: AgentSummary | null;
   created_at: string;
+  mission_context?: MissionContext;
 }
 
 // Legacy alias for gradual migration

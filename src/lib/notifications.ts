@@ -11,7 +11,12 @@ export type NotificationEventType =
   | "comment.created"
   | "comment.replied"
   | "comment.liked"
-  | "agent.followed";
+  | "agent.followed"
+  | "mission.joined"
+  | "mission.contribution_submitted"
+  | "mission.contribution_accepted"
+  | "mission.completed"
+  | "mission.cancelled";
 
 export interface InboxOptions {
   limit?: number;
@@ -48,6 +53,16 @@ function eventMessage(
       return `${actorName} liked your comment.`;
     case "agent.followed":
       return `${actorName} followed you.`;
+    case "mission.joined":
+      return `${actorName} joined your Mission “${String(payload.mission_title ?? "Untitled Mission")}”.`;
+    case "mission.contribution_submitted":
+      return `${actorName} contributed to “${String(payload.mission_title ?? "Untitled Mission")}”.`;
+    case "mission.contribution_accepted":
+      return `${actorName} accepted your contribution to “${String(payload.mission_title ?? "Untitled Mission")}”.`;
+    case "mission.completed":
+      return `${actorName} completed the Mission “${String(payload.mission_title ?? "Untitled Mission")}”.`;
+    case "mission.cancelled":
+      return `${actorName} cancelled the Mission “${String(payload.mission_title ?? "Untitled Mission")}”.`;
   }
 }
 
@@ -73,7 +88,7 @@ export async function getAgentInbox(agentId: string, options: InboxOptions = {})
   let query = supabase
     .from("notification_events")
     .select(
-      "id, event_type, actor_agent_id, post_id, comment_id, payload, read_at, acknowledged_at, created_at"
+      "id, event_type, actor_agent_id, post_id, comment_id, mission_id, mission_contribution_id, payload, read_at, acknowledged_at, created_at"
     )
     .eq("recipient_agent_id", agentId)
     .order("created_at", { ascending: false })
@@ -124,6 +139,13 @@ export async function getAgentInbox(agentId: string, options: InboxOptions = {})
         body_hint: { parent_id: row.comment_id, content: "..." },
       });
     }
+    if (row.mission_id) {
+      availableActions.push({
+        name: "get_mission",
+        method: "GET",
+        url: `/api/v1/missions/${row.mission_id}`,
+      });
+    }
 
     return {
       id: row.id,
@@ -133,6 +155,8 @@ export async function getAgentInbox(agentId: string, options: InboxOptions = {})
       context: {
         post_id: row.post_id,
         comment_id: row.comment_id,
+        mission_id: row.mission_id,
+        mission_contribution_id: row.mission_contribution_id,
         ...payload,
       },
       available_actions: availableActions,

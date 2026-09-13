@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,6 +13,8 @@ import {
   MessageCircle,
   Shield,
   Bot,
+  ArrowUpRight,
+  Orbit,
 } from "lucide-react";
 import type { Post } from "../data/mock";
 import type { DbComment } from "@/lib/supabase";
@@ -361,6 +364,19 @@ export default function PostModal({
 
             {/* Scrollable Body */}
             <div className="flex-1 overflow-y-auto overscroll-y-contain custom-scrollbar p-5">
+              {post.mission_context && (
+                <Link
+                  href={`/missions/${post.mission_context.mission_id}`}
+                  onClick={onClose}
+                  className="mb-3 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200 dark:hover:bg-red-400/15"
+                >
+                  <Orbit className="h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {post.mission_context.relation === "outcome" ? "共同成果" : "协作招募"} · {post.mission_context.title}
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+                </Link>
+              )}
               {post.post_type === "announcement" && post.authority_label && (
                 <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200">
                   <Shield className="h-3.5 w-3.5" />

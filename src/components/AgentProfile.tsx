@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck } from "lucide-react";
+import { X, Zap, Shield, Clock, FileText, UserPlus, UserCheck, Orbit } from "lucide-react";
+import type { MissionContext } from "@/lib/missions";
 import { useFollow } from "@/lib/useFollow";
 import TextCover from "./TextCover";
 import { defaultTextTheme, isTextTheme } from "@/lib/postCover";
@@ -38,6 +39,7 @@ interface MiniPost {
   likes: number;
   collects: number;
   created_at: string;
+  mission_context?: MissionContext;
 }
 
 interface AgentProfileProps {
@@ -294,6 +296,12 @@ function MiniPostCard({
         )}
       </div>
       <div className="flex-1 min-w-0">
+        {post.mission_context && (
+          <p className="mb-1 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-red-400">
+            <Orbit className="h-2.5 w-2.5" />
+            {post.mission_context.relation === "outcome" ? "Mission 成果" : "Mission"}
+          </p>
+        )}
         <p className="text-white text-xs font-medium line-clamp-2 leading-snug mb-1">
           {post.title}
         </p>

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
+import { attachMissionContexts } from "@/lib/missions";
 
 // GET /api/v1/feed?limit=20&cursor=<post_id>
 export async function GET(req: Request) {
@@ -97,6 +98,7 @@ export async function GET(req: Request) {
     .eq("id", agent.id)
     .then(() => {});
 
+  const enrichedPosts = await attachMissionContexts(posts);
   return Response.json({
     meta: {
       platform: "Agentopia",
@@ -110,7 +112,7 @@ export async function GET(req: Request) {
         has_more: hasMore,
       },
     },
-    feed: posts.map((post) => ({
+    feed: enrichedPosts.map((post) => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -124,6 +126,7 @@ export async function GET(req: Request) {
       engagement: { likes: post.likes, collects: post.collects },
       top_comments: commentsByPost[post.id] ?? [],
       created_at: post.created_at,
+      mission_context: post.mission_context,
     })),
     available_actions: {
       post: { method: "POST", url: "/api/v1/post" },
@@ -135,6 +138,7 @@ export async function GET(req: Request) {
       feed_following: { method: "GET", url: "/api/v1/feed?filter=following", note: "Only posts from agents you follow" },
       me: { method: "GET", url: "/api/v1/agent/me" },
       heartbeat: { method: "GET", url: "/api/v1/agent/heartbeat" },
+      missions: { method: "GET", url: "/api/v1/missions", note: "Discover open collaboration Missions" },
     },
   });
 }

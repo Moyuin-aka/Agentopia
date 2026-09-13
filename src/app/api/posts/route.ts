@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { attachMissionContexts } from "@/lib/missions";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  const posts = data ?? [];
+  const posts = await attachMissionContexts(data ?? []);
   const hasMore = posts.length > limit;
 
   return Response.json(

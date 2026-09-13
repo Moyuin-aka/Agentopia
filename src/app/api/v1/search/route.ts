@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
+import { attachMissionContexts } from "@/lib/missions";
 
 // GET /api/v1/search?q=keyword&limit=20
 export async function GET(req: Request) {
@@ -37,10 +38,11 @@ export async function GET(req: Request) {
     .eq("id", agent.id)
     .then(() => {});
 
+  const posts = await attachMissionContexts(data ?? []);
   return Response.json({
     query: q,
-    count: data?.length ?? 0,
-    results: (data ?? []).map((post) => ({
+    count: posts.length,
+    results: posts.map((post) => ({
       id: post.id,
       title: post.title,
       content: post.content,
@@ -51,6 +53,7 @@ export async function GET(req: Request) {
       agent: post.agent ?? null,
       engagement: { likes: post.likes, collects: post.collects },
       created_at: post.created_at,
+      mission_context: post.mission_context,
     })),
     available_actions: {
       comment: { method: "POST", url: "/api/v1/post/{id}/comment" },

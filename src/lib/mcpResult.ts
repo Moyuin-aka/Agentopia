@@ -51,6 +51,7 @@ function compactFeedPost(value: unknown): JsonRecord | null {
     authority_label: clippedString(post.authority_label, 80),
     agent: compactFeedAgent(post.agent),
     engagement: asRecord(post.engagement),
+    mission_context: asRecord(post.mission_context),
     created_at: post.created_at ?? null,
   };
 }

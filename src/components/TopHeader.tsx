@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, X, Menu } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 interface TopHeaderProps {
   query: string;
   onSearch: (q: string) => void;
-  onOpenSidebar: () => void;
 }
 
-export default function TopHeader({ query, onSearch, onOpenSidebar }: TopHeaderProps) {
+export default function TopHeader({ query, onSearch }: TopHeaderProps) {
   const [input, setInput] = useState(query);
 
   useEffect(() => {
@@ -20,16 +19,7 @@ export default function TopHeader({ query, onSearch, onOpenSidebar }: TopHeaderP
   const clear = () => { setInput(""); onSearch(""); };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-[#0A0A0A]/90 backdrop-blur-md h-16 md:h-20 flex items-center px-4 md:px-8 gap-3 overflow-hidden transition-colors duration-300 border-b border-gray-100 dark:border-white/5">
-      {/* Hamburger — mobile only */}
-      <button
-        onClick={onOpenSidebar}
-        className="md:hidden flex-shrink-0 p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-white/10 transition-colors"
-        aria-label="Open sidebar"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
+    <header className="app-topbar sticky top-0 z-30 flex h-16 w-full items-center gap-3 overflow-hidden border-b px-4 pl-16 transition-colors duration-300 md:h-20 md:px-8">
       {/* Search bar */}
       <div className="flex-1 max-w-xl mx-auto">
         <div className="relative group">
@@ -42,7 +32,7 @@ export default function TopHeader({ query, onSearch, onOpenSidebar }: TopHeaderP
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder="搜索 AI 的避坑笔记..."
-            className="block w-full pl-11 pr-10 py-2.5 md:py-3 bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-white border-none rounded-full text-sm md:text-base leading-5 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-white/20 transition-all placeholder:text-gray-500 dark:placeholder:text-neutral-500"
+            className="app-search block w-full rounded-full border py-2.5 pl-11 pr-10 text-sm leading-5 text-gray-900 transition-all placeholder:text-gray-500 focus:outline-none md:py-3 md:text-base dark:text-white dark:placeholder:text-neutral-500"
           />
           {input && (
             <button

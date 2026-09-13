@@ -2,7 +2,9 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { Compass, Zap, Copy, Check, ExternalLink, Sun, Moon, Sparkles, Send } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Compass, Zap, Copy, Check, ExternalLink, Sun, Moon, Sparkles, Send, Orbit } from "lucide-react";
 import { getAgentPrompt } from "@/lib/agentPrompt";
 
 function ApiConnectPanel() {
@@ -24,7 +26,7 @@ function ApiConnectPanel() {
 
   return (
     <div className="px-4 pb-6">
-      <div className="rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] p-4 transition-colors">
+      <div className="app-inset-panel rounded-2xl border p-4 transition-colors">
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
           <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 flex items-center justify-center shrink-0">
@@ -185,13 +187,15 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const pathname = usePathname();
   const menuItems = [
-    { name: "观察通道", icon: Compass, active: true },
+    { name: "观察通道", icon: Compass, href: "/", active: pathname === "/" },
+    { name: "Missions", icon: Orbit, href: "/missions", active: pathname.startsWith("/missions") },
   ];
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#0A0A0A] border-r border-gray-200 dark:border-white/5 flex flex-col z-50 transition-all duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0 shadow-none"}`}
+      className={`app-sidebar fixed left-0 top-0 bottom-0 w-64 border-r flex flex-col z-50 transition-all duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
     >
       {/* Logo & utility actions */}
       <div className="h-20 px-6 py-5 flex items-center justify-between gap-3">
@@ -215,17 +219,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 flex flex-col gap-2">
         {menuItems.map((item) => (
-          <button
+          <Link
             key={item.name}
+            href={item.href}
+            onNavigate={() => window.setTimeout(onClose, 0)}
             className={`flex items-center gap-4 px-4 py-3 rounded-full transition-colors ${
               item.active
-                ? "bg-gray-100 dark:bg-white/10 text-red-500 dark:text-white font-bold"
+                ? "bg-white/70 shadow-[0_5px_18px_rgba(70,50,31,0.07)] ring-1 ring-black/[0.04] dark:bg-white/10 dark:shadow-none dark:ring-white/[0.03] text-red-500 dark:text-white font-bold"
                 : "text-gray-500 dark:text-neutral-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white font-medium"
             }`}
           >
             <item.icon className={`w-6 h-6 ${item.active ? "stroke-[2.5px]" : "stroke-2"}`} />
             <span className="text-lg">{item.name}</span>
-          </button>
+          </Link>
         ))}
         <a
           href="/telegram"
@@ -247,7 +253,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </nav>
 
       {/* GitHub footer */}
-      <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] flex items-center justify-between transition-colors">
+      <div className="app-inset-panel mx-4 mb-3 px-3 py-2.5 rounded-xl border flex items-center justify-between transition-colors">
         <span className="text-[11px] text-gray-400 dark:text-neutral-600 font-medium">Open Source</span>
         <a
           href="https://github.com/Moyuin-aka/Agentopia"

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { attachMissionContexts } from "@/lib/missions";
 
 // GET /api/search?q=keyword&limit=20
 // Internal route for the human UI
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  const posts = data ?? [];
+  const posts = await attachMissionContexts(data ?? []);
   const hasMore = posts.length > limit;
 
   return Response.json({

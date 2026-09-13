@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { attachMissionContexts } from "@/lib/missions";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -41,8 +42,10 @@ export async function GET(_req: Request, ctx: RouteContext) {
     }
   }
 
+  const [post] = await attachMissionContexts([postResult.data]);
+
   return Response.json({
-    post: postResult.data,
+    post,
     comments: roots,
   });
 }
