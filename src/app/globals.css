@@ -4,8 +4,37 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --background: #0A0A0A;
-  --foreground: #EDEDED;
+  --background: #f0ece4;
+  --foreground: #241f1b;
+  --app-canvas: #f0ece4;
+  --app-shell-background:
+    radial-gradient(circle at 82% -8%, rgba(239, 68, 68, 0.11), transparent 31rem),
+    radial-gradient(circle at 35% 105%, rgba(185, 150, 111, 0.10), transparent 34rem),
+    linear-gradient(145deg, #f5f1e9 0%, #eee8de 100%);
+  --app-sidebar: rgba(249, 246, 239, 0.91);
+  --app-topbar: rgba(244, 240, 232, 0.78);
+  --app-surface: rgba(255, 253, 248, 0.88);
+  --app-inset: rgba(226, 218, 206, 0.48);
+  --app-border: rgba(68, 53, 40, 0.11);
+  --app-shadow: 0 16px 42px rgba(70, 50, 31, 0.08), 0 2px 8px rgba(70, 50, 31, 0.04);
+  --app-sidebar-shadow: 14px 0 44px rgba(70, 50, 31, 0.07);
+}
+
+[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --app-canvas: #0a0a0a;
+  --app-shell-background:
+    radial-gradient(circle at 82% -8%, rgba(239, 68, 68, 0.09), transparent 32rem),
+    radial-gradient(circle at 35% 105%, rgba(123, 78, 48, 0.05), transparent 34rem),
+    linear-gradient(145deg, #0b0b0b 0%, #080808 100%);
+  --app-sidebar: rgba(13, 13, 13, 0.93);
+  --app-topbar: rgba(12, 12, 12, 0.80);
+  --app-surface: rgba(25, 25, 25, 0.92);
+  --app-inset: rgba(255, 255, 255, 0.035);
+  --app-border: rgba(255, 255, 255, 0.075);
+  --app-shadow: none;
+  --app-sidebar-shadow: 14px 0 44px rgba(0, 0, 0, 0.22);
 }
 
 @theme inline {
@@ -17,7 +46,66 @@
 
 body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: var(--app-canvas);
   @apply antialiased;
+}
+
+/* Shared material system: canvas → navigation glass → raised content. */
+.app-shell {
+  background-color: var(--app-canvas);
+  background-image: var(--app-shell-background);
+  background-attachment: fixed;
+}
+
+.app-sidebar {
+  background: var(--app-sidebar);
+  border-color: var(--app-border);
+  box-shadow: var(--app-sidebar-shadow);
+  backdrop-filter: blur(24px) saturate(125%);
+}
+
+.app-topbar {
+  background: var(--app-topbar);
+  border-color: var(--app-border);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.36), 0 10px 32px rgba(70, 50, 31, 0.035);
+  backdrop-filter: blur(24px) saturate(130%);
+}
+
+[data-theme="dark"] .app-topbar {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.015);
+}
+
+.app-surface,
+.app-card {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  box-shadow: var(--app-shadow);
+  backdrop-filter: blur(12px);
+}
+
+.app-card {
+  transition: border-color 240ms ease, box-shadow 240ms ease, transform 240ms ease;
+}
+
+.app-card:hover {
+  border-color: rgba(239, 68, 68, 0.18);
+  box-shadow: 0 20px 48px rgba(70, 50, 31, 0.13), 0 3px 10px rgba(70, 50, 31, 0.05);
+}
+
+[data-theme="dark"] .app-card:hover {
+  border-color: rgba(255, 255, 255, 0.11);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.app-inset-panel,
+.app-search {
+  background: var(--app-inset);
+  border-color: var(--app-border);
+}
+
+.app-search:focus {
+  background: var(--app-surface);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
 }
 
 /* Custom masonry item rendering */

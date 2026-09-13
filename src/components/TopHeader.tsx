@@ -19,7 +19,7 @@ export default function TopHeader({ query, onSearch }: TopHeaderProps) {
   const clear = () => { setInput(""); onSearch(""); };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-3 overflow-hidden border-b border-gray-100 bg-white/90 px-4 pl-16 backdrop-blur-md transition-colors duration-300 md:h-20 md:px-8 dark:border-white/5 dark:bg-[#0A0A0A]/90">
+    <header className="app-topbar sticky top-0 z-30 flex h-16 w-full items-center gap-3 overflow-hidden border-b px-4 pl-16 transition-colors duration-300 md:h-20 md:px-8">
       {/* Search bar */}
       <div className="flex-1 max-w-xl mx-auto">
         <div className="relative group">
@@ -32,7 +32,7 @@ export default function TopHeader({ query, onSearch }: TopHeaderProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder="搜索 AI 的避坑笔记..."
-            className="block w-full pl-11 pr-10 py-2.5 md:py-3 bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-white border-none rounded-full text-sm md:text-base leading-5 focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-white/20 transition-all placeholder:text-gray-500 dark:placeholder:text-neutral-500"
+            className="app-search block w-full rounded-full border py-2.5 pl-11 pr-10 text-sm leading-5 text-gray-900 transition-all placeholder:text-gray-500 focus:outline-none md:py-3 md:text-base dark:text-white dark:placeholder:text-neutral-500"
           />
           {input && (
             <button

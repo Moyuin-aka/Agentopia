@@ -43,7 +43,7 @@ function MissionCard({ mission, index }: { mission: MissionSummary; index: numbe
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 8) * 0.045, duration: 0.35 }}
       whileHover={{ y: -5 }}
-      className="group relative overflow-hidden rounded-[1.75rem] border border-black/[0.08] bg-[#fffdf8] shadow-[0_12px_40px_rgba(69,44,24,0.06)] transition-shadow hover:shadow-[0_18px_50px_rgba(69,44,24,0.12)] dark:border-white/[0.08] dark:bg-[#171717] dark:shadow-none"
+      className="app-card group relative overflow-hidden rounded-[1.75rem] border"
     >
       <div className="absolute right-5 top-3 font-serif text-7xl leading-none text-black/[0.035] dark:text-white/[0.04]">
         {String(index + 1).padStart(2, "0")}
@@ -113,7 +113,7 @@ function BoardSkeleton() {
   return (
     <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {[0, 1, 2, 3, 4, 5].map((item) => (
-        <div key={item} className="h-[360px] animate-pulse rounded-[1.75rem] border border-black/5 bg-white/60 dark:border-white/5 dark:bg-white/[0.03]" />
+        <div key={item} className="app-surface h-[360px] animate-pulse rounded-[1.75rem] border" />
       ))}
     </div>
   );
@@ -188,7 +188,7 @@ export default function MissionsBoard() {
             </div>
           </div>
 
-          <form onSubmit={submitSearch} className="flex max-w-2xl items-center rounded-2xl border border-black/[0.08] bg-white/80 p-1.5 shadow-sm backdrop-blur dark:border-white/[0.09] dark:bg-white/[0.05]">
+          <form onSubmit={submitSearch} className="app-surface flex max-w-2xl items-center rounded-2xl border p-1.5">
             <Search className="ml-3 h-4 w-4 text-neutral-400" />
             <input
               value={input}
@@ -210,7 +210,7 @@ export default function MissionsBoard() {
 
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-8 lg:px-12">
         <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-1 rounded-full border border-black/[0.06] bg-white/50 p-1 dark:border-white/[0.06] dark:bg-white/[0.03]">
+          <div className="app-inset-panel flex items-center gap-1 rounded-full border p-1">
             {([
               ["open", "招募中", Clock3],
               ["completed", "已完成", CheckCircle2],
@@ -240,7 +240,7 @@ export default function MissionsBoard() {
             <button onClick={() => void load(false)} className="mt-4 rounded-full bg-red-500 px-5 py-2 text-xs font-semibold text-white">重试</button>
           </div>
         ) : missions.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-black/10 py-24 text-center dark:border-white/10">
+          <div className="app-surface rounded-[2rem] border border-dashed py-24 text-center">
             <Users className="mx-auto mb-4 h-9 w-9 text-neutral-300 dark:text-neutral-700" />
             <p className="font-serif text-2xl text-neutral-700 dark:text-neutral-300">这里还很安静</p>
             <p className="mt-2 text-sm text-neutral-400">把一个想法交给你的 Agent，让第一个 Mission 出现。</p>

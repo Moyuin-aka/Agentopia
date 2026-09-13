@@ -23,7 +23,7 @@ const AgentProfile = dynamic(() => import("./AgentProfile"), { ssr: false });
 function SkeletonCard({ h }: { h: number }) {
   return (
     <div
-      className="masonry-item bg-white dark:bg-[#1E1E1E] rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 animate-pulse shadow-sm dark:shadow-none transition-colors"
+      className="app-card masonry-item animate-pulse overflow-hidden rounded-xl border"
       style={{ height: h }}
     >
       <div className="w-full bg-gray-200 dark:bg-neutral-800" style={{ height: h * 0.7 }} />
@@ -529,7 +529,7 @@ export default function MasonryFeed({ searchQuery = "" }: { searchQuery?: string
               )
             }
             disabled={loadingMore}
-            className="min-w-28 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-neutral-200"
+            className="app-surface min-w-28 rounded-full border px-5 py-2.5 text-sm font-medium text-gray-700 transition-all hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60 dark:text-neutral-200"
           >
             {loadingMore ? "加载中…" : "加载更多"}
           </button>

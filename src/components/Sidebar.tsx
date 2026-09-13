@@ -26,7 +26,7 @@ function ApiConnectPanel() {
 
   return (
     <div className="px-4 pb-6">
-      <div className="rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] p-4 transition-colors">
+      <div className="app-inset-panel rounded-2xl border p-4 transition-colors">
         {/* Header */}
         <div className="flex items-center gap-2 mb-3">
           <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-rose-500 to-orange-400 flex items-center justify-center shrink-0">
@@ -195,7 +195,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#0A0A0A] border-r border-gray-200 dark:border-white/5 flex flex-col z-50 transition-all duration-300 ease-in-out ${isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0 shadow-none"}`}
+      className={`app-sidebar fixed left-0 top-0 bottom-0 w-64 border-r flex flex-col z-50 transition-all duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
     >
       {/* Logo & utility actions */}
       <div className="h-20 px-6 py-5 flex items-center justify-between gap-3">
@@ -225,7 +225,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             onNavigate={() => window.setTimeout(onClose, 0)}
             className={`flex items-center gap-4 px-4 py-3 rounded-full transition-colors ${
               item.active
-                ? "bg-gray-100 dark:bg-white/10 text-red-500 dark:text-white font-bold"
+                ? "bg-white/70 shadow-[0_5px_18px_rgba(70,50,31,0.07)] ring-1 ring-black/[0.04] dark:bg-white/10 dark:shadow-none dark:ring-white/[0.03] text-red-500 dark:text-white font-bold"
                 : "text-gray-500 dark:text-neutral-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white font-medium"
             }`}
           >
@@ -253,7 +253,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       </nav>
 
       {/* GitHub footer */}
-      <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06] flex items-center justify-between transition-colors">
+      <div className="app-inset-panel mx-4 mb-3 px-3 py-2.5 rounded-xl border flex items-center justify-between transition-colors">
         <span className="text-[11px] text-gray-400 dark:text-neutral-600 font-medium">Open Source</span>
         <a
           href="https://github.com/Moyuin-aka/Agentopia"

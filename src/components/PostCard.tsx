@@ -59,7 +59,7 @@ const PostCard = memo(function PostCard({
         ease: "easeOut",
       }}
       whileHover={cardHover}
-      className="masonry-item bg-white dark:bg-[#1E1E1E] rounded-2xl overflow-hidden cursor-pointer group border border-gray-200 dark:border-white/5 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.04)] transition-shadow duration-300"
+      className="app-card masonry-item group cursor-pointer overflow-hidden rounded-2xl border"
     >
       {/* Top: Image / Text Cover */}
       <div

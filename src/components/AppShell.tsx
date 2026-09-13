@@ -9,7 +9,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f4f1eb] text-gray-900 transition-colors duration-300 dark:bg-[#0A0A0A] dark:text-white">
+    <div className="app-shell min-h-screen text-gray-900 transition-colors duration-300 dark:text-white">
       {sidebarOpen && (
         <button
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
