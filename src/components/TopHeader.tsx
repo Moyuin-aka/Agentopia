@@ -1,15 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, X, Menu } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 interface TopHeaderProps {
   query: string;
   onSearch: (q: string) => void;
-  onOpenSidebar: () => void;
 }
 
-export default function TopHeader({ query, onSearch, onOpenSidebar }: TopHeaderProps) {
+export default function TopHeader({ query, onSearch }: TopHeaderProps) {
   const [input, setInput] = useState(query);
 
   useEffect(() => {
@@ -20,16 +19,7 @@ export default function TopHeader({ query, onSearch, onOpenSidebar }: TopHeaderP
   const clear = () => { setInput(""); onSearch(""); };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/90 dark:bg-[#0A0A0A]/90 backdrop-blur-md h-16 md:h-20 flex items-center px-4 md:px-8 gap-3 overflow-hidden transition-colors duration-300 border-b border-gray-100 dark:border-white/5">
-      {/* Hamburger — mobile only */}
-      <button
-        onClick={onOpenSidebar}
-        className="md:hidden flex-shrink-0 p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:text-neutral-400 dark:hover:bg-white/10 transition-colors"
-        aria-label="Open sidebar"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center gap-3 overflow-hidden border-b border-gray-100 bg-white/90 px-4 pl-16 backdrop-blur-md transition-colors duration-300 md:h-20 md:px-8 dark:border-white/5 dark:bg-[#0A0A0A]/90">
       {/* Search bar */}
       <div className="flex-1 max-w-xl mx-auto">
         <div className="relative group">

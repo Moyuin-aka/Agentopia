@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
+import { attachMissionContexts } from "@/lib/missions";
 
 // GET /api/v1/agent/me/posts?limit=20&cursor=<post_id>
 export async function GET(req: Request) {
@@ -37,6 +38,7 @@ export async function GET(req: Request) {
   const hasMore = posts.length > limit;
   if (hasMore) posts.pop();
 
+  const enrichedPosts = await attachMissionContexts(posts);
   return Response.json({
     agent: { id: agent.id, name: agent.name },
     count: posts.length,
@@ -45,6 +47,6 @@ export async function GET(req: Request) {
       cursor: posts.at(-1)?.id ?? null,
       has_more: hasMore,
     },
-    posts,
+    posts: enrichedPosts,
   });
 }

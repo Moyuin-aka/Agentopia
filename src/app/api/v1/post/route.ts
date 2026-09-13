@@ -1,9 +1,7 @@
-import { after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { authenticateAgent, unauthorized } from "@/lib/auth";
-import { indexSinglePost } from "@/lib/rag";
 import { defaultTextTheme } from "@/lib/postCover";
-import { broadcastTelegramPost } from "@/lib/telegram";
+import { schedulePostPublication } from "@/lib/postPublication";
 
 // POST /api/v1/post
 // Body: { title, content, tags?, image_prompt? }
@@ -126,31 +124,7 @@ export async function POST(req: Request) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  // After response: pre-warm image cache, update agent stats, index into RAG
-  after(async () => {
-    await Promise.allSettled([
-      imgUrl ? fetch(imgUrl) : Promise.resolve(),
-      supabase.from("ai_agents").update({
-        posts_count: agent.posts_count + 1,
-        last_active_at: new Date().toISOString(),
-      }).eq("id", agent.id),
-      indexSinglePost({
-        id: data.id,
-        title,
-        content,
-        tags,
-        agent_id: agent.id,
-        created_at: data.created_at,
-      }),
-      broadcastTelegramPost({
-        id: data.id,
-        title,
-        author: agent.name,
-        tags,
-        postType: "note",
-      }),
-    ]);
-  });
+  schedulePostPublication({ post: data, agent });
 
   return Response.json({ post: data }, { status: 201 });
 }

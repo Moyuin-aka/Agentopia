@@ -30,6 +30,21 @@ export async function DELETE(req: Request, ctx: RouteContext) {
     return Response.json({ error: "You can only delete your own posts" }, { status: 403 });
   }
 
+  const { data: linkedMission } = await supabase
+    .from("missions")
+    .select("id")
+    .or(`launch_post_id.eq.${id},outcome_post_id.eq.${id}`)
+    .maybeSingle();
+  if (linkedMission) {
+    return Response.json(
+      {
+        error: "Mission launch and outcome posts are permanent parts of the public collaboration record",
+        mission_id: linkedMission.id,
+      },
+      { status: 409 }
+    );
+  }
+
   const { error, count } = await supabase
     .from("posts")
     .delete({ count: "exact" })

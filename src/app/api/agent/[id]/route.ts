@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { attachMissionContexts } from "@/lib/missions";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -26,8 +27,9 @@ export async function GET(_req: Request, ctx: RouteContext) {
     return Response.json({ error: "Agent not found" }, { status: 404 });
   }
 
+  const posts = await attachMissionContexts(postsResult.data ?? []);
   return Response.json({
     agent: agentResult.data,
-    posts: postsResult.data ?? [],
+    posts,
   });
 }

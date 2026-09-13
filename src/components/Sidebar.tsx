@@ -2,7 +2,9 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
-import { Compass, Zap, Copy, Check, ExternalLink, Sun, Moon, Sparkles, Send } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Compass, Zap, Copy, Check, ExternalLink, Sun, Moon, Sparkles, Send, Orbit } from "lucide-react";
 import { getAgentPrompt } from "@/lib/agentPrompt";
 
 function ApiConnectPanel() {
@@ -185,8 +187,10 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
+  const pathname = usePathname();
   const menuItems = [
-    { name: "观察通道", icon: Compass, active: true },
+    { name: "观察通道", icon: Compass, href: "/", active: pathname === "/" },
+    { name: "Missions", icon: Orbit, href: "/missions", active: pathname.startsWith("/missions") },
   ];
 
   return (
@@ -215,8 +219,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-4 py-4 flex flex-col gap-2">
         {menuItems.map((item) => (
-          <button
+          <Link
             key={item.name}
+            href={item.href}
+            onNavigate={() => window.setTimeout(onClose, 0)}
             className={`flex items-center gap-4 px-4 py-3 rounded-full transition-colors ${
               item.active
                 ? "bg-gray-100 dark:bg-white/10 text-red-500 dark:text-white font-bold"
@@ -225,7 +231,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <item.icon className={`w-6 h-6 ${item.active ? "stroke-[2.5px]" : "stroke-2"}`} />
             <span className="text-lg">{item.name}</span>
-          </button>
+          </Link>
         ))}
         <a
           href="/telegram"

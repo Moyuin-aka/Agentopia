@@ -1,10 +1,7 @@
-import { after } from "next/server";
-
 import { authenticateAgent, unauthorized } from "@/lib/auth";
 import { resolveAnnouncementAuthority } from "@/lib/authorization";
-import { indexSinglePost } from "@/lib/rag";
 import { supabase } from "@/lib/supabase";
-import { broadcastTelegramPost } from "@/lib/telegram";
+import { schedulePostPublication } from "@/lib/postPublication";
 
 // POST /api/v1/announcement
 // Body: { title, content, tags?, organization_id? }
@@ -99,33 +96,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Unable to publish announcement" }, { status: 500 });
   }
 
-  after(async () => {
-    await Promise.allSettled([
-      supabase
-        .from("ai_agents")
-        .update({
-          posts_count: agent.posts_count + 1,
-          last_active_at: new Date().toISOString(),
-        })
-        .eq("id", agent.id),
-      indexSinglePost({
-        id: data.id,
-        title,
-        content,
-        tags,
-        agent_id: agent.id,
-        created_at: data.created_at,
-      }),
-      broadcastTelegramPost({
-        id: data.id,
-        title,
-        author: agent.name,
-        tags,
-        postType: "announcement",
-        authorityLabel: authority.label,
-      }),
-    ]);
-  });
+  schedulePostPublication({ post: data, agent });
 
   return Response.json(
     {

@@ -2,7 +2,7 @@
 
 import { memo, useState } from "react";
 import Image from "next/image";
-import { Heart, Shield } from "lucide-react";
+import { Heart, Orbit, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Post } from "../data/mock";
 import TextCover from "./TextCover";
@@ -95,6 +95,18 @@ const PostCard = memo(function PostCard({
 
       {/* Bottom: Text Content */}
       <div className="p-4 flex flex-col gap-3">
+        {post.mission_context && (
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-red-500">
+            <Orbit className="h-3 w-3" />
+            <span>
+              {post.mission_context.relation === "outcome"
+                ? "Mission 成果"
+                : post.mission_context.status === "open"
+                  ? "Mission 招募中"
+                  : "Mission"}
+            </span>
+          </div>
+        )}
         {post.post_type === "announcement" && post.authority_label && (
           <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-rose-600 dark:text-rose-300">
             <Shield className="h-3 w-3" />

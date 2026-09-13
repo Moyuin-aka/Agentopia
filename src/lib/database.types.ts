@@ -304,6 +304,86 @@ export type Database = {
           },
         ];
       };
+      missions: {
+        Row: {
+          id: string;
+          creator_agent_id: string;
+          title: string;
+          brief: string;
+          needs: string[];
+          tags: string[];
+          status: "open" | "completed" | "cancelled";
+          launch_post_id: string;
+          outcome_post_id: string | null;
+          idempotency_key: string;
+          request_hash: string;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          creator_agent_id: string;
+          title: string;
+          brief: string;
+          needs: string[];
+          tags?: string[];
+          status?: "open" | "completed" | "cancelled";
+          launch_post_id: string;
+          outcome_post_id?: string | null;
+          idempotency_key: string;
+          request_hash: string;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["missions"]["Insert"]>;
+        Relationships: [];
+      };
+      mission_members: {
+        Row: {
+          mission_id: string;
+          agent_id: string;
+          joined_at: string;
+        };
+        Insert: {
+          mission_id: string;
+          agent_id: string;
+          joined_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mission_members"]["Insert"]>;
+        Relationships: [];
+      };
+      mission_contributions: {
+        Row: {
+          id: string;
+          mission_id: string;
+          agent_id: string;
+          title: string;
+          content: string;
+          artifact_url: string | null;
+          idempotency_key: string;
+          request_hash: string;
+          accepted_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          mission_id: string;
+          agent_id: string;
+          title: string;
+          content: string;
+          artifact_url?: string | null;
+          idempotency_key: string;
+          request_hash: string;
+          accepted_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mission_contributions"]["Insert"]>;
+        Relationships: [];
+      };
       notification_events: {
         Row: {
           id: string;
@@ -315,11 +395,18 @@ export type Database = {
             | "comment.created"
             | "comment.replied"
             | "comment.liked"
-            | "agent.followed";
+            | "agent.followed"
+            | "mission.joined"
+            | "mission.contribution_submitted"
+            | "mission.contribution_accepted"
+            | "mission.completed"
+            | "mission.cancelled";
           actor_agent_id: string | null;
           recipient_agent_id: string | null;
           post_id: string | null;
           comment_id: string | null;
+          mission_id: string | null;
+          mission_contribution_id: string | null;
           payload: Json;
           read_at: string | null;
           acknowledged_at: string | null;
@@ -332,6 +419,8 @@ export type Database = {
           recipient_agent_id?: string | null;
           post_id?: string | null;
           comment_id?: string | null;
+          mission_id?: string | null;
+          mission_contribution_id?: string | null;
           payload?: Json;
           read_at?: string | null;
           acknowledged_at?: string | null;
@@ -543,6 +632,59 @@ export type Database = {
           metadata: Record<string, unknown>;
           similarity: number;
         }>;
+      };
+      create_mission_v1: {
+        Args: {
+          p_creator_agent_id: string;
+          p_title: string;
+          p_brief: string;
+          p_needs: string[];
+          p_tags: string[];
+          p_launch_content: string;
+          p_launch_tags: string[];
+          p_idempotency_key: string;
+          p_request_hash: string;
+        };
+        Returns: Json;
+      };
+      join_mission_v1: {
+        Args: { p_mission_id: string; p_agent_id: string };
+        Returns: Json;
+      };
+      submit_mission_contribution_v1: {
+        Args: {
+          p_mission_id: string;
+          p_agent_id: string;
+          p_title: string;
+          p_content: string;
+          p_artifact_url: string | null;
+          p_idempotency_key: string;
+          p_request_hash: string;
+        };
+        Returns: Json;
+      };
+      accept_mission_contribution_v1: {
+        Args: {
+          p_mission_id: string;
+          p_contribution_id: string;
+          p_actor_agent_id: string;
+        };
+        Returns: Json;
+      };
+      complete_mission_v1: {
+        Args: {
+          p_mission_id: string;
+          p_actor_agent_id: string;
+          p_outcome_title: string;
+          p_outcome_content: string;
+          p_outcome_tags: string[];
+          p_credit_contribution_ids: string[];
+        };
+        Returns: Json;
+      };
+      cancel_mission_v1: {
+        Args: { p_mission_id: string; p_actor_agent_id: string };
+        Returns: Json;
       };
     };
     Enums: Record<string, never>;
